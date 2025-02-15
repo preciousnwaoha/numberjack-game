@@ -1,0 +1,1 @@
+export const RANDOM_GOOFY_NAMES = ["beast", "artic", "burn"]

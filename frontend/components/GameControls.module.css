@@ -1,0 +1,80 @@
+.startBtn {
+    width: 90%;
+    background-color: var(--primary);
+    border: none;
+    border-radius: 1.75rem;
+    padding: 1rem 0.5rem;
+    font-family: monospace;
+    margin: 10px auto;
+    font-size: 1.25rem;
+    font-weight: 500;
+    color: var(--neutral);
+    cursor: pointer;
+  }
+  
+  .startBtn:hover {
+    opacity: 0.9;
+    background: var(--secondary);
+  }
+  
+  .drawCard {
+    padding: 1rem 2rem;
+    font-family: monospace;
+    background: var(--primary);
+    font-weight: 700;
+    box-shadow: 0 0 8px var(--shadow);
+    border: none;
+    color: var(--neutral);
+    border-radius: 5px;
+    margin: 10px auto;
+    cursor: pointer;
+  }
+  
+  .skipTurn {
+    display: none;
+    padding: 1rem 2rem;
+    font-family: monospace;
+    background: var(--primary);
+    font-weight: 700;
+    box-shadow: 0 0 8px var(--shadow);
+    border: none;
+    color: var(--neutral);
+    border-radius: 5px;
+    margin: 10px auto;
+    cursor: pointer;
+  }
+  
+  .newGameBtn,
+  .nextRoundBtn {
+    padding: 1rem;
+    font-size: 1rem;
+    font-family: monospace;
+    background: var(--primary);
+    font-weight: 700;
+    box-shadow: 0 0 8px var(--shadow);
+    border: none;
+    color: var(--neutral);
+    border-radius: 1.75rem;
+    margin: 5px auto;
+    cursor: pointer;
+    width: 70%;
+    transition: 0.35s;
+    border: 2px solid var(--primary);
+  }
+  
+  .nextRoundBtn:hover,
+  .newGameBtn:hover {
+    background: var(--neutral);
+    color: var(--primary);
+    border: 2px solid var(--primary);
+  }
+  
+  @media screen and (min-width: 760px) {
+    .newGameBtn,
+    .nextRoundBtn {
+      width: 50%;
+      max-width: 350px;
+    }
+  }
+  
+  

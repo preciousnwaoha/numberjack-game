@@ -1,0 +1,7 @@
+.notificationBar {
+    color: var(--secondary);
+    font-size: 1rem;
+    user-select: none;
+  }
+  
+  

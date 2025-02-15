@@ -1,0 +1,111 @@
+.openScoreboard {
+    padding: 0.85rem 1.5rem;
+    border: none;
+    cursor: pointer;
+    color: var(--neutral);
+    font-family: sans-serif;
+    font-size: 1rem;
+    margin-top: 10px;
+    border-radius: 1.5rem;
+    opacity: 0.6;
+    transition: 0.3s;
+  }
+  
+  .openScoreboard:hover {
+    opacity: 1;
+  }
+  
+  .scoreboardWrapper {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    top: 52px;
+    width: 100%;
+    height: calc(100% - 53px);
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 3000;
+  }
+  
+  .scoreboardExit {
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding: 20px;
+    text-decoration: center;
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: var(--secondary);
+    font-family: sans-serif;
+    cursor: pointer;
+  }
+  
+  .scoreboardExit:hover {
+    color: var(--primary);
+  }
+  
+  .scoreboard {
+    border-radius: 10px;
+    width: 90%;
+    max-width: 400px;
+    height: auto;
+    border-bottom: 20px solid var(--secondary);
+  }
+  
+  .scoreboardHeader {
+    background: var(--secondary);
+    color: var(--neutral);
+    border-top-right-radius: 10px;
+    border-top-left-radius: 10px;
+    font-family: sans-serif;
+  }
+  
+  .scoreboardList {
+    text-align: left;
+    margin: 0;
+    padding: 0;
+  }
+  
+  .scoreboardListItem {
+    padding: 10px 0;
+    width: 100%;
+    background: var(--neutral);
+    color: var(--primary);
+    box-shadow: 0 0 15px var(--shadowDark);
+    transition: transform 0.35s;
+    font-family: sans-serif;
+  }
+  
+  .scoreboardListItem span {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    text-align: center;
+    line-height: 20px;
+    border-radius: 50%;
+    margin: 0 10px;
+    background: var(--secondary);
+    color: var(--neutral);
+    font-size: 0.85rem;
+    font-weight: 600;
+    transform: translateY(-2px);
+  }
+  
+  .scoreboardList:hover .scoreboardListItem {
+    opacity: 0.2;
+  }
+  
+  .scoreboardList .scoreboardListItem:hover {
+    transform: scale(1.1);
+    background: var(--secondary);
+    box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
+    color: var(--neutral);
+    opacity: 1;
+  }
+  
+  .scoreboardList .scoreboardListItem:hover span {
+    background: var(--neutral);
+    color: var(--secondary);
+  }
+  
+  

@@ -1,0 +1,141 @@
+.aboutWrapper {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    height: 60px;
+    width: 100%;
+    z-index: 5000;
+  }
+  
+  .about {
+    display: none;
+    flex-direction: column;
+    position: relative;
+    border-radius: 5px;
+    width: 100%;
+    height: 80%;
+    overflow: hidden;
+    box-shadow: 0 0 8px var(--shadowDark);
+  }
+  
+  .about * {
+    user-select: none;
+  }
+  
+  .aboutHeader {
+    display: flex;
+    align-items: center;
+    color: #d4d4d4;
+    padding-left: 20px;
+    text-align: left;
+    height: 50px;
+    width: 100%;
+    position: absolute;
+    top: 0;
+    background: #040404;
+    box-shadow: 0 4px 8px -2px var(--shadowDark);
+  }
+  
+  .aboutContent {
+    width: 100%;
+    height: auto;
+    margin-top: 50px;
+    margin-bottom: 40px;
+    background: var(--neutral);
+    overflow-y: scroll;
+  }
+  
+  .aboutContent::-webkit-scrollbar {
+    width: 0.5rem;
+    height: 0.5rem;
+  }
+  
+  .aboutContent::-webkit-scrollbar-track {
+    border-radius: 4px;
+    background: var(--neutral);
+  }
+  
+  .aboutContent::-webkit-scrollbar-thumb {
+    background: var(--shadow);
+    border-radius: 4px;
+    transition: background 0.3s ease-in-out;
+    cursor: grab;
+  }
+  
+  .aboutContent::-webkit-scrollbar-thumb:hover {
+    background: var(--shadowDark);
+  }
+  
+  .aboutContentItem {
+    padding: 10px;
+    width: 80%;
+    margin: 10px auto;
+    color: var(--primary);
+    background: var(--shadow);
+    text-align: left;
+    border-radius: 5px;
+    height: auto;
+  }
+  
+  .aboutContentItemText {
+    font-family: "Gill Sans", "Gill Sans MT", Calibri, "Trebuchet MS", sans-serif;
+    font-size: 0.8rem;
+  }
+  
+  .aboutFooter {
+    white-space: pre-wrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-top: 1px solid var(--shadow);
+    background: var(--neutral);
+    position: absolute;
+    text-align: center;
+    bottom: 0;
+    height: 40px;
+    width: 100%;
+  }
+  
+  .aboutBtnWrapper {
+    position: absolute;
+    bottom: 0;
+    height: 100%;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .aboutBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px;
+    width: 40px;
+    color: var(--neutral);
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: 300;
+    font-size: 1.25rem;
+    user-select: none;
+    background: var(--secondary);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--shadowDark);
+    cursor: pointer;
+  }
+  
+  .aboutBtn:hover {
+    background: var(--primary);
+    color: var(--neutral);
+  }
+  
+  @media screen and (min-width: 400px) {
+    .aboutWrapper {
+      max-width: 300px;
+      margin-right: 10px;
+    }
+    .aboutBtnWrapper {
+      justify-content: flex-end;
+    }
+  }
+  
+  
