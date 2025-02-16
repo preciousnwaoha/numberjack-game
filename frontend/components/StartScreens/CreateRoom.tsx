@@ -1,61 +1,64 @@
-
 "use client";
 
-// Name
-// Number of players
-// Add Computers
-// Auto Fill Up with mods after?
-// Max Number
-// Fixed Rounds mode | (Fixed Time mode)
-// (Drain mode)
-
 import React, { useState } from "react";
-import styles from "./CreateRoom.module.css";
-import {Button} from "@/components/ui/button";
-import {Input} from "@/components/ui/input";
-import {Checkbox} from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useGame } from "@/context/GameContext";
 import { Select } from "../ui/select";
 import { SelectItem } from "@radix-ui/react-select";
+import { GameModeType } from "@/types";
+import { MIN_FEE } from "@/lib/constants";
 
 const CreateRoom: React.FC = () => {
-  const { startGame, error } = useGame();
-  const [roomName, setRoomName] = useState("");
-  const [humanPlayers, setHumanPlayers] = useState(2);
-  const [computerPlayers, setComputerPlayers] = useState(0);
-  const [maxNumber, setMaxNumber] = useState(50);
-  const [autoFill, setAutoFill] = useState(false);
-  const [gameMode, setGameMode] = useState("fixed-rounds");
+  const { createRoom, clientPlayerAddress, error } = useGame();
+  const [roomName, setRoomName] = useState("Some Name");
+  const [players, setPlayers] = useState(2);
+  const [maxNumber, setMaxNumber] = useState(21);
+  const [mode, setMode] = useState<GameModeType>("rounds");
+  const [modeValue, setModeValue] = useState(3);
+  const [fee, setFee] = useState(MIN_FEE);
 
   const handleCreateRoom = () => {
-    startGame(humanPlayers, computerPlayers, maxNumber);
+    if (!roomName || !players || !maxNumber) {
+      return;
+    }
+
+    createRoom({
+      creator: clientPlayerAddress,
+      name: roomName,
+      id: 1,
+      players,
+      mode,
+      modeValue,
+      maxNumber,
+      drainMode: false,
+      drainValue: 0,
+      started: false,
+      fee,
+    });
   };
 
   return (
-    <div className={styles.createRoom}>
+    <div className={""}>
       <Button variant="outline">Back</Button>
-      <div className={styles.formContainer}>
+      <div className={""}>
         <h2>Create a Room</h2>
-        {error && <p className={styles.error}>{error}</p>}
+        {error && <p className={""}>{error}</p>}
         <label>Room Name</label>
-        <Input value={roomName} onChange={(e) => setRoomName(e.target.value)} placeholder="Enter room name" />
-        
-        <label>Number of Human Players</label>
+        <Input
+          value={roomName}
+          onChange={(e) => setRoomName(e.target.value)}
+          placeholder="Enter room name"
+        />
+
+        <label>Number of Players</label>
         <Input
           type="number"
           min="1"
           max="12"
-          value={humanPlayers}
-          onChange={(e) => setHumanPlayers(Number(e.target.value))}
-        />
-
-        <label>Number of Computer Players</label>
-        <Input
-          type="number"
-          min="0"
-          max="12"
-          value={computerPlayers}
-          onChange={(e) => setComputerPlayers(Number(e.target.value))}
+          value={players}
+          onChange={(e) => setPlayers(Number(e.target.value))}
         />
 
         <label>Max Number</label>
@@ -68,7 +71,7 @@ const CreateRoom: React.FC = () => {
         />
 
         {/* <Checkbox checked={autoFill} onCheckedChange={setAutoFill}>Auto-fill with Mods</Checkbox> */}
-        
+
         {/* <label>Game Mode</label> */}
         {/* <Select value={gameMode} onValueChange={setGameMode}>
           <SelectItem value="fixed-rounds">Fixed Rounds Mode</SelectItem>
