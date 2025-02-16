@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 contract MultiplayerGame {
 
     address public owner;
+    IERC20 public rewardToken;
 
     struct GameRoom {
         address creator;
@@ -29,8 +32,9 @@ contract MultiplayerGame {
     event WinnerDeclared(uint256 roomId, address winner, uint256 prize);
     event NoWinner(uint256 roomId, uint256 prizeTransferredToOwner);
 
-    constructor() {
+    constructor(address _multisigAddress, address gameTokenAddress) {
         owner = msg.sender;
+        rewardToken = IERC20(gameTokenAddress);
     }
 
 
