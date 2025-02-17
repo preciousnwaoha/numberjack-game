@@ -4,8 +4,8 @@ pragma solidity ^0.8.22;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-contract GuessToken is ERC20 {
-    constructor() ERC20("GuessToken", "GTK") {}
+contract NumberJackToken is ERC20 {
+    constructor() ERC20("NumberJackToken", "NJT") {}
 
 
     function mint(address gameAddress) public {
