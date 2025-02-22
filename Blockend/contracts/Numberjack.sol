@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-interface IToken {
-    function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
-}
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract MultiplayerGame {
     address public owner;
-    IToken public gameToken;
+    IERC20 public gameToken;
     uint256 public skipFee = 10; // Fee (in tokens) to skip turn
 
     // Game status and mode enumerations
@@ -31,6 +29,8 @@ contract MultiplayerGame {
         uint256 currentPlayerIndex; // Which player’s turn it is (round-based mode)
         uint256 lastTurnTimestamp;  // When the current turn began
         uint256 turnTimeout;        // Maximum allowed time per turn (seconds)
+
+        // Add total Money for the room
     }
 
     mapping(uint256 => GameRoom) public gameRooms;
@@ -47,9 +47,9 @@ contract MultiplayerGame {
     event TurnSkipped(uint256 roomId, address player);
     event TurnTimedOut(uint256 roomId, address timedOutPlayer);
 
-    constructor(address _tokenAddress) {
+    constructor(address _gameTokenAddress) {
         owner = msg.sender;
-        gameToken = IToken(_tokenAddress);
+        gameToken = IERC20(_gameTokenAddress);
     }
 
     // Create a game room; _turnTimeout sets the max time (in seconds) for each turn.
@@ -110,8 +110,8 @@ contract MultiplayerGame {
 
     // Internal helper to generate two random draws (1-100) based on input nonce.
     function _getDraws(address _player, uint256 _nonce) internal view returns (uint256, uint256) {
-        uint256 first = (uint256(keccak256(abi.encodePacked(block.timestamp, block.difficulty, _player, _nonce))) % 100) + 1;
-        uint256 second = (uint256(keccak256(abi.encodePacked(block.timestamp, block.difficulty, _player, _nonce + 1))) % 100) + 1;
+        uint256 first = (uint256(keccak256(abi.encodePacked(block.timestamp, block.prevrandao, _player, _nonce))) % 100) + 1;
+        uint256 second = (uint256(keccak256(abi.encodePacked(block.timestamp, block.prevrandao, _player, _nonce + 1))) % 100) + 1;
         return (first, second);
     }
 
@@ -254,5 +254,23 @@ contract MultiplayerGame {
         }
         room.status = GameStatus.Ended;
         room.isActive = false;
+    }
+
+    /// GETTER FUNCTIONS
+
+    function getGameRoomById(uint256 _gameRoomId) public view returns (GameRoom memory) {
+        return gameRooms[_gameRoomId];
+    }
+
+    function getPlayerScoresForEachGameRoom(uint256 _roomId, address _player) public view returns (uint256) {
+        return playerScores[_roomId][_player];
+    }
+
+    function getIsPlayerEliminatedByRoomId(uint256 _roomId, address _player) public view returns (bool) {
+        return isEliminated[_roomId][_player];
+    }
+
+    function getTotalRoomsCreated() public view returns (uint256) {
+        return roomCounter;
     }
 }
