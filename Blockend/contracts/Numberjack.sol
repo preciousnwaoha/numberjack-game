@@ -66,7 +66,10 @@ contract MultiplayerGame {
         require(_maxNumber > 0, "Max number must be > 0");
         require(_entryFee > 0, "Entry fee must be > 0");
         // Creator must also pay entry fee
+        require(msg.value == _entryFee, "Deposit entry fee");
+
         roomCounter++;
+
         GameRoom storage room = gameRooms[roomCounter];
         room.creator = msg.sender;
         room.gameId = roomCounter;
@@ -95,6 +98,8 @@ contract MultiplayerGame {
         require(room.status == GameStatus.NotStarted, "Game already started");
         require(msg.value == room.entryFee, "Incorrect entry fee");
         room.players.push(msg.sender);
+
+        // A mapping to show the player has alreadyy
         emit PlayerJoined(_roomId, msg.sender);
     }
 
@@ -136,21 +141,21 @@ contract MultiplayerGame {
     }
 
     // For time-based mode: any player (not eliminated) can update their score at any time.
-    function updateScore(uint256 _roomId) external returns (uint256, uint256) {
-        GameRoom storage room = gameRooms[_roomId];
-        require(room.status == GameStatus.InProgress, "Game not in progress");
-        require(room.mode == GameMode.TimeBased, "Not time-based mode");
-        require(!isEliminated[_roomId][msg.sender], "You are eliminated");
+    // function updateScore(uint256 _roomId) external returns (uint256, uint256) {
+    //     GameRoom storage room = gameRooms[_roomId];
+    //     require(room.status == GameStatus.InProgress, "Game not in progress");
+    //     require(room.mode == GameMode.TimeBased, "Not time-based mode");
+    //     require(!isEliminated[_roomId][msg.sender], "You are eliminated");
 
-        (uint256 draw1, uint256 draw2) = _getDraws(msg.sender, block.timestamp);
-        uint256 totalDraw = draw1 + draw2;
-        playerScores[_roomId][msg.sender] += totalDraw;
-        if (playerScores[_roomId][msg.sender] > room.maxNumber) {
-            isEliminated[_roomId][msg.sender] = true;
-            emit PlayerEliminated(_roomId, msg.sender);
-        }
-        return (draw1, draw2);
-    }
+    //     (uint256 draw1, uint256 draw2) = _getDraws(msg.sender, block.timestamp);
+    //     uint256 totalDraw = draw1 + draw2;
+    //     playerScores[_roomId][msg.sender] += totalDraw;
+    //     if (playerScores[_roomId][msg.sender] > room.maxNumber) {
+    //         isEliminated[_roomId][msg.sender] = true;
+    //         emit PlayerEliminated(_roomId, msg.sender);
+    //     }
+    //     return (draw1, draw2);
+    // }
 
     // For rounds mode: allows the current player to skip their turn by paying tokens.
     function skipTurn(uint256 _roomId) external {
@@ -167,6 +172,7 @@ contract MultiplayerGame {
 
     // Internal function to advance turn in rounds mode by moving to the next non-eliminated player.
     // If a full cycle is completed, increments the round counter.
+    // This function basically helps to advance the turn to non-eleminated players
     function _advanceTurn(uint256 _roomId) internal {
         GameRoom storage room = gameRooms[_roomId];
         uint256 playersCount = room.players.length;
