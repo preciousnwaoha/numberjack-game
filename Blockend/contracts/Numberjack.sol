@@ -100,7 +100,7 @@ contract MultiplayerGame {
     // Only the creator can start the game.
     function startGame(uint256 _roomId) external {
         GameRoom storage room = gameRooms[_roomId];
-        require(msg.sender == room.creator, "Only creator can start");
+        require(msg.sender == room.creator, "Only creator can start"); // I will have to remove this
         require(room.status == GameStatus.NotStarted, "Game already started");
         room.status = GameStatus.InProgress;
         room.startTime = block.timestamp;
