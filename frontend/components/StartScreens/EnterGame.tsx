@@ -20,7 +20,7 @@ const EnterGame: React.FC = () => {
   };
 
   if (roomData) {
-    if (roomData.started) {
+    if (roomData.status === "InProgress") {
       return <GameBoard />;
     }
     return <Lobby />;

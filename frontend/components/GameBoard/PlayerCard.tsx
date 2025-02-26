@@ -5,14 +5,12 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
-import { RiComputerLine } from "react-icons/ri";
-import { RiRobot2Line } from "react-icons/ri";
-import { FaUserAstronaut } from "react-icons/fa6";
+// import { RiComputerLine } from "react-icons/ri";
+// import { RiRobot2Line } from "react-icons/ri";
+// import { FaUserAstronaut } from "react-icons/fa6";
 import { useGame } from "@/context/GameContext";
 import { PlayerType } from "@/types";
 
@@ -21,19 +19,23 @@ interface PlayerCardProps {
 }
 
 const PlayerCard: React.FC<PlayerCardProps> = ({ player }) => {
-  const { drawCard, skipTurn, currentPlayer, players } = useGame();
+  const { drawCard, skipTurn, players, roomData } = useGame();
+
+  if (!player || !roomData) return
+
+  const currentPlayer = roomData.currentPlayerIndex;
 
   const isCurrentPlayer = player.address === players[currentPlayer].address;
   
-  const { color, isComputer } = player;
+  const { color } = player;
 
-  const draws1 = player.cards.filter((_, i) => i % 2 === 0);
-  const draws2 = player.cards.filter((_, i) => i % 2 !== 0);
+  const draws1 = player.draws.filter((_, i) => i % 2 === 0);
+  const draws2 = player.draws.filter((_, i) => i % 2 !== 0);
 
   const sumOfDraws1 = draws1.reduce((acc, curr) => acc + curr, 0);
   const sumOfDraws2 = draws2.reduce((acc, curr) => acc + curr, 0);
 
-  const noOfDraws = !!player.cards ? player.cards.length / 2 : 0;
+  const noOfDraws = !!player.draws ? player.draws.length / 2 : 0;
 
   const handleDrawCard = () => {
     drawCard();
@@ -50,7 +52,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player }) => {
       <CardHeader>
         <div>
           <div style={{ "--player-color": color } as React.CSSProperties}>
-            <div>{isComputer ? <RiComputerLine /> : <FaUserAstronaut />}</div>
+            {/* <div>{isComputer ? <RiComputerLine /> : <FaUserAstronaut />}</div> */}
           </div>
           <span className="font-bold">Player {player.address}</span>
           <div className={``}>Draws: {noOfDraws}</div>

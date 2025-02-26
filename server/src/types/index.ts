@@ -1,17 +1,14 @@
 export interface PlayerType {
   name: string;
-  address: string,
+  address: string;
   draws: number[];
   total: number;
   isActive: boolean;
   hasSkippedTurn: boolean;
   color: string;
-  claimed: boolean;
 }
 
-export type GameModeType = "Rounds" | "TimeBased";
-
-export type GameStatusType = "NotStarted" | "InProgress" | "Ended";
+export type GameModeType = 'Rounds' | 'TimeBased';
 
 export interface RoomType {
   creator: string; // address of creatoe
@@ -23,7 +20,8 @@ export interface RoomType {
   modeCurrentValue: number;
   maxNumber: number;
   isActive: boolean;
-  status: GameStatusType;
+  status: 'NotStarted' | 'InProgress' | 'Ended';
+  started: boolean;
   entryFee: number;
   startTime: number;
   duration: number;
@@ -32,9 +30,8 @@ export interface RoomType {
   turnTimeout: number;
 }
 
-
 export interface GameType {
-  roomId: number,
-  players: PlayerType[],
-  winner: string,
+  roomId: number;
+  players: PlayerType[];
+  winner: string;
 }
