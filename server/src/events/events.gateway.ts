@@ -60,7 +60,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('playerDraw')
-  handlePlayerMove(
+  handlePlayerDraw(
     client: Socket,
     data: { roomId: string; player: string; draw: [number, number] },
   ) {
@@ -68,27 +68,27 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('playerSkip')
-  handlePlayerMove(client: Socket, data: { roomId: string; player: string }) {
+  handlePlayerSkip(client: Socket, data: { roomId: string; player: string }) {
     this.server.to(data.roomId).emit('playerSkipped', data);
   }
 
   @SubscribeMessage('playerLost')
-  handlePlayerMove(client: Socket, data: { roomId: string; player: string }) {
+  handlePlayerLost(client: Socket, data: { roomId: string; player: string }) {
     this.server.to(data.roomId).emit('playerOut', data);
   }
 
   @SubscribeMessage('playerWin')
-  handlePlayerMove(client: Socket, data: { roomId: string; player: string }) {
+  handlePlayerWin(client: Socket, data: { roomId: string; player: string }) {
     this.server.to(data.roomId).emit('playerWon', data);
   }
 
   @SubscribeMessage('playerClaim')
-  handlePlayerMove(client: Socket, data: { roomId: string; player: string }) {
+  handlePlayerClaim(client: Socket, data: { roomId: string; player: string }) {
     this.server.to(data.roomId).emit('playerClaimed', data);
   }
 
   @SubscribeMessage('closeRoom')
-  handlePlayerMove(client: Socket, data: { roomId: string }) {
+  handleCloseRoom(client: Socket, data: { roomId: string }) {
     const updattedRooms = Object.keys(this.rooms).reduce(
       (acc, key) => {
         if (key !== data.roomId) {

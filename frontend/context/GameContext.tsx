@@ -380,7 +380,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
       );
       await tx.wait();
       console.log("Room created successfully");
-      await getAvailableRooms();
     } catch (error) {
       console.error("Error creating room:", error);
     }
