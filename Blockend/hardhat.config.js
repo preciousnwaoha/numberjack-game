@@ -3,10 +3,9 @@ require("dotenv").config();
 
 /** @type import('hardhat/config').HardhatUserConfig */
 
-const SEPOLIA_RPC_URL = process.env.SEPOLIA_RPC_URL;
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
 
-const CORE_RPC_URL = process.env.CORE_RPC_URL;
+
 
 module.exports = {
   solidity: {
@@ -48,12 +47,12 @@ module.exports = {
       chainId: 31337,
       allowUnlimitedContractSize: true,
     },
-    sepolia: {
-      url: SEPOLIA_RPC_URL,
-      accounts: [PRIVATE_KEY],
-      chainId: 11155111,
-      blockConfirmations: 2,
-    },
+    // sepolia: {
+    //   url: SEPOLIA_RPC_URL,
+    //   accounts: [PRIVATE_KEY],
+    //   chainId: 11155111,
+    //   blockConfirmations: 2,
+    // },
     core: {
       url: 'https://rpc.test.btcs.network',
       accounts: [PRIVATE_KEY],
