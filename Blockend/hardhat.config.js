@@ -47,16 +47,10 @@ module.exports = {
       chainId: 31337,
       allowUnlimitedContractSize: true,
     },
-    // sepolia: {
-    //   url: SEPOLIA_RPC_URL,
-    //   accounts: [PRIVATE_KEY],
-    //   chainId: 11155111,
-    //   blockConfirmations: 2,
-    // },
     core: {
-      url: 'https://rpc.test.btcs.network',
+      url: 'https://rpc.test2.btcs.network',
       accounts: [PRIVATE_KEY],
-      chainId: 1115,
+      chainId: 1114,
     },
   },
 };
