@@ -3,7 +3,7 @@ pragma solidity ^0.8.19;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-contract MultiplayerGame {
+contract NumberJackGame {
     address public owner;
     IERC20 public gameToken;
     uint256 public skipFee = 10; // Fee (in tokens) to skip turn
@@ -49,9 +49,9 @@ contract MultiplayerGame {
     event TurnAdvanced(uint256 roomId, address newPlayer, uint256 currentRound, uint256 turnStartTime);
 
 
-    constructor(address _gameTokenAddress) {
+    constructor(address gameTokenAddress) {
         owner = msg.sender;
-        gameToken = IERC20(_gameTokenAddress);
+        gameToken = IERC20(gameTokenAddress);
     }
 
     // Create a game room; _turnTimeout sets the max time (in seconds) for each turn.
