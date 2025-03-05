@@ -5,38 +5,52 @@ require("dotenv").config();
 
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
 
-
-
 module.exports = {
   solidity: {
     compilers: [
       {
-        version: '0.8.22',
+        version: "0.8.27",
         settings: {
-           evmVersion: 'paris',
-           optimizer: {
-              enabled: true,
-              runs: 200,
-           },
-           viaIR: true,
+          optimizer: {
+            enabled: true,
+            runs: 100,
+          },
+          viaIR: true,
         },
-     },
-      { version: "0.8.19", settings: {
-        evmVersion: 'paris',
-        optimizer: {
-           enabled: true,
-           runs: 200,
+      },
+      {
+        version: "0.8.22",
+        settings: {
+          evmVersion: "paris",
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+          viaIR: true,
         },
-        viaIR: true,
-     }, },
-      { version: "0.8.20", settings: {
-        evmVersion: 'paris',
-        optimizer: {
-           enabled: true,
-           runs: 200,
+      },
+      {
+        version: "0.8.19",
+        settings: {
+          evmVersion: "paris",
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+          viaIR: true,
         },
-        viaIR: true,
-     }, },
+      },
+      {
+        version: "0.8.20",
+        settings: {
+          evmVersion: "paris",
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+          viaIR: true,
+        },
+      },
     ],
   },
 
@@ -48,7 +62,7 @@ module.exports = {
       allowUnlimitedContractSize: true,
     },
     core: {
-      url: 'https://rpc.test2.btcs.network',
+      url: "https://rpc.test2.btcs.network",
       accounts: [PRIVATE_KEY],
       chainId: 1114,
     },
