@@ -38,9 +38,12 @@ contract MultiplayerGame {
     mapping(uint256 => mapping(address => bool)) public isEliminated;
     uint256 public roomCounter;
 
+    GameRoom[] private allGameRooms;
+
     // Events for various actions
     event GameRoomCreated(uint256 roomId, address creator, uint256 maxNumber, uint256 entryFee, GameMode mode);
     event PlayerJoined(uint256 roomId, address player);
+    event GameStarted(uint256 _roomId);
     event PlayerEliminated(uint256 roomId, address player);
     event WinnerDeclared(uint256 roomId, address winner, uint256 prize);
     event NoWinner(uint256 roomId, uint256 prizeTransferredToOwner);
@@ -84,6 +87,9 @@ contract MultiplayerGame {
         // lastTurnTimestamp will be set when the game starts
         room.lastTurnTimestamp = 0;
         room.players.push(msg.sender);
+
+        allGameRooms.push(room);
+
         emit GameRoomCreated(roomCounter, msg.sender, _maxNumber, _entryFee, _mode);
     }
 
@@ -94,18 +100,25 @@ contract MultiplayerGame {
         require(room.status == GameStatus.NotStarted, "Game already started");
         require(msg.value == room.entryFee, "Incorrect entry fee");
         room.players.push(msg.sender);
+
+        allGameRooms[_roomId - 1] = room;
+
         emit PlayerJoined(_roomId, msg.sender);
     }
 
     // Only the creator can start the game.
     function startGame(uint256 _roomId) external {
         GameRoom storage room = gameRooms[_roomId];
-        require(msg.sender == room.creator, "Only creator can start");
+        require(msg.sender == room.creator, "Only creator can start"); // I will have to remove this
         require(room.status == GameStatus.NotStarted, "Game already started");
         room.status = GameStatus.InProgress;
         room.startTime = block.timestamp;
         // Begin the first turn immediately.
         room.lastTurnTimestamp = block.timestamp;
+
+        allGameRooms[_roomId - 1] = room;
+
+        emit GameStarted(_roomId);
     }
 
     // Internal helper to generate two random draws (1-100) based on input nonce.
@@ -124,7 +137,7 @@ contract MultiplayerGame {
         require(!isEliminated[_roomId][msg.sender], "You are eliminated");
 
         // Check that the current player hasn’t exceeded the allowed turn time.
-        require(block.timestamp <= room.lastTurnTimestamp + room.turnTimeout, "Turn timed out, force skip");
+        // require(block.timestamp <= room.lastTurnTimestamp + room.turnTimeout, "Turn timed out, force skip");
 
         (uint256 draw1, uint256 draw2) = _getDraws(msg.sender, room.currentRound + room.currentPlayerIndex);
         uint256 totalDraw = draw1 + draw2;
@@ -254,12 +267,18 @@ contract MultiplayerGame {
         }
         room.status = GameStatus.Ended;
         room.isActive = false;
+
+        allGameRooms[_roomId - 1] = room;
     }
 
     /// GETTER FUNCTIONS
 
     function getGameRoomById(uint256 _gameRoomId) public view returns (GameRoom memory) {
         return gameRooms[_gameRoomId];
+    }
+
+    function getALlGameRooms() public view returns (GameRoom[] memory) {
+        return allGameRooms;
     }
 
     function getPlayerScoresForEachGameRoom(uint256 _roomId, address _player) public view returns (uint256) {
