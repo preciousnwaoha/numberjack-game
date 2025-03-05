@@ -3,13 +3,14 @@ pragma solidity ^0.8.19;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-contract NumberJackGame {
+contract MultiplayerGame {
     address public owner;
     IERC20 public gameToken;
     uint256 public skipFee = 10; // Fee (in tokens) to skip turn
 
     // Game status and mode enumerations
     enum GameStatus { NotStarted, InProgress, Ended }
+    enum GameMode { Rounds, TimeBased }
 
     // The game room now tracks turn-related timing
     struct GameRoom {
@@ -20,6 +21,9 @@ contract NumberJackGame {
         address[] players;
         bool isActive;
         GameStatus status;
+        GameMode mode;
+        uint256 startTime;      // Game start (for time-based mode)
+        uint256 duration;       // Total game duration (time-based mode)
         uint256 rounds;         // Maximum rounds (round-based mode)
         uint256 currentRound;   // Current round number (round-based mode)
         uint256 currentPlayerIndex; // Which player’s turn it is (round-based mode)
@@ -37,28 +41,26 @@ contract NumberJackGame {
     GameRoom[] private allGameRooms;
 
     // Events for various actions
-    event GameRoomCreated(uint256 roomId, address creator, uint256 maxNumber, uint256 entryFee, uint256 rounds);
+    event GameRoomCreated(uint256 roomId, address creator, uint256 maxNumber, uint256 entryFee, GameMode mode);
     event PlayerJoined(uint256 roomId, address player);
     event GameStarted(uint256 _roomId);
-    event PlayerPlayed(uint256 _roomId, address player);
     event PlayerEliminated(uint256 roomId, address player);
     event WinnerDeclared(uint256 roomId, address winner, uint256 prize);
     event NoWinner(uint256 roomId, uint256 prizeTransferredToOwner);
     event TurnSkipped(uint256 roomId, address player);
     event TurnTimedOut(uint256 roomId, address timedOutPlayer);
-    event TurnAdvanced(uint256 roomId, address newPlayer, uint256 currentRound, uint256 turnStartTime);
 
-
-    constructor(address gameTokenAddress) {
+    constructor(address _gameTokenAddress) {
         owner = msg.sender;
-        gameToken = IERC20(gameTokenAddress);
+        gameToken = IERC20(_gameTokenAddress);
     }
 
     // Create a game room; _turnTimeout sets the max time (in seconds) for each turn.
     function createGameRoom(
         uint256 _maxNumber,
         uint256 _entryFee,
-        uint256 _rounds,
+        GameMode _mode,
+        uint256 _durationOrRounds,
         uint256 _turnTimeout
     ) external payable {
         require(_maxNumber > 0, "Max number must be > 0");
@@ -73,7 +75,12 @@ contract NumberJackGame {
         room.entryFee = _entryFee;
         room.isActive = true;
         room.status = GameStatus.NotStarted;
-        room.rounds = _rounds;
+        room.mode = _mode;
+        if (_mode == GameMode.Rounds) {
+            room.rounds = _durationOrRounds;
+        } else {
+            room.duration = _durationOrRounds;
+        }
         room.currentRound = 1;
         room.currentPlayerIndex = 0;
         room.turnTimeout = _turnTimeout;
@@ -84,7 +91,7 @@ contract NumberJackGame {
         allGameRooms.push(room);
 
 
-        emit GameRoomCreated(roomCounter, msg.sender, _maxNumber, _entryFee, _rounds);
+        emit GameRoomCreated(roomCounter, msg.sender, _maxNumber, _entryFee, _mode);
 
         emit PlayerJoined(roomCounter, msg.sender);
     }
@@ -108,7 +115,7 @@ contract NumberJackGame {
         require(msg.sender == room.creator, "Only creator can start"); // I will have to remove this
         require(room.status == GameStatus.NotStarted, "Game already started");
         room.status = GameStatus.InProgress;
-
+        room.startTime = block.timestamp;
         // Begin the first turn immediately.
         room.lastTurnTimestamp = block.timestamp;
 
@@ -128,6 +135,7 @@ contract NumberJackGame {
     function playTurn(uint256 _roomId) external returns (uint256, uint256) {
         GameRoom storage room = gameRooms[_roomId];
         require(room.status == GameStatus.InProgress, "Game not in progress");
+        require(room.mode == GameMode.Rounds, "Not rounds mode");
         require(room.players[room.currentPlayerIndex] == msg.sender, "Not your turn");
         require(!isEliminated[_roomId][msg.sender], "You are eliminated");
 
@@ -145,15 +153,35 @@ contract NumberJackGame {
 
         _advanceTurn(_roomId);
 
-        emit PlayerPlayed(_roomId, msg.sender);
-
+        // emit PlayerPlayed();
+        
         return (draw1, draw2);
     }
+
+    // For time-based mode: players update their score at any time.
+    // function updateScore(uint256 _roomId) external returns (uint256, uint256) {
+    //     GameRoom storage room = gameRooms[_roomId];
+    //     require(room.status == GameStatus.InProgress, "Game not in progress");
+    //     require(room.mode == GameMode.TimeBased, "Not time-based mode");
+    //     require(!isEliminated[_roomId][msg.sender], "You are eliminated");
+    //     // Enforce turn timing here as well.
+    //     require(block.timestamp <= room.lastTurnTimestamp + room.turnTimeout, "Turn timed out");
+
+    //     (uint256 draw1, uint256 draw2) = _getDraws(msg.sender, block.timestamp);
+    //     uint256 totalDraw = draw1 + draw2;
+    //     playerScores[_roomId][msg.sender] += totalDraw;
+    //     if (playerScores[_roomId][msg.sender] > room.maxNumber) {
+    //         isEliminated[_roomId][msg.sender] = true;
+    //         emit PlayerEliminated(_roomId, msg.sender);
+    //     }
+    //     return (draw1, draw2);
+    // }
 
     // In rounds mode, the current player can voluntarily skip their turn by paying a fee.
     function skipTurn(uint256 _roomId) external {
         GameRoom storage room = gameRooms[_roomId];
         require(room.status == GameStatus.InProgress, "Game not in progress");
+        require(room.mode == GameMode.Rounds, "Not rounds mode");
         require(room.players[room.currentPlayerIndex] == msg.sender, "Not your turn");
         require(!isEliminated[_roomId][msg.sender], "You are eliminated");
 
@@ -191,8 +219,6 @@ contract NumberJackGame {
             // Break if we've looped over all players.
             if (room.currentPlayerIndex == startingIndex) break;
         } while (isEliminated[_roomId][room.players[room.currentPlayerIndex]]);
-
-        emit TurnAdvanced(_roomId, room.players[room.currentPlayerIndex], room.currentRound, room.lastTurnTimestamp);
     }
 
     // This function concludes the game and determines the winner.
@@ -219,16 +245,32 @@ contract NumberJackGame {
         }
         uint256 prize = room.players.length * room.entryFee;
 
-        if (remainingPlayers == 1 || room.currentRound > room.rounds) {
-            payable(lastPlayer).transfer(prize);
-            emit WinnerDeclared(_roomId, lastPlayer, prize);
-        } else if (remainingPlayers == 0) {
-            payable(owner).transfer(prize);
-            emit NoWinner(_roomId, prize);
+        if (room.mode == GameMode.Rounds) {
+            if (remainingPlayers == 1 || room.currentRound > room.rounds) {
+                payable(lastPlayer).transfer(prize);
+                emit WinnerDeclared(_roomId, lastPlayer, prize);
+            } else if (remainingPlayers == 0) {
+                payable(owner).transfer(prize);
+                emit NoWinner(_roomId, prize);
+            } else {
+                revert("Game not yet concluded");
+            }
         } else {
-            revert("Game not yet concluded");
+            if (block.timestamp >= room.startTime + room.duration) {
+                if (remainingPlayers == 1) {
+                    payable(lastPlayer).transfer(prize);
+                    emit WinnerDeclared(_roomId, lastPlayer, prize);
+                } else if (remainingPlayers > 1) {
+                    payable(lowestScorer).transfer(prize);
+                    emit WinnerDeclared(_roomId, lowestScorer, prize);
+                } else if (remainingPlayers == 0) {
+                    payable(owner).transfer(prize);
+                    emit NoWinner(_roomId, prize);
+                }
+            } else {
+                revert("Game duration not yet ended");
+            }
         }
-
         room.status = GameStatus.Ended;
         room.isActive = false;
 
@@ -257,3 +299,4 @@ contract NumberJackGame {
         return roomCounter;
     }
 }
+
