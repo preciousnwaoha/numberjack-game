@@ -20,7 +20,7 @@ contract NumberJackToken is ERC20 {
     }
 
 
-    function mint(address gameAddress) public onlyOwner {
-        _mint(gameAddress, 100000 * 10 ** 18);
+    function mint(address _receipient, uint256 _amount) public {
+        _mint(_receipient, _amount);
     }
 }
