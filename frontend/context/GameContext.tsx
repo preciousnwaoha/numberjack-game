@@ -19,9 +19,13 @@ import {
 import { errors } from "@/lib/errors";
 import { PlayerType, RoomType } from "@/types";
 
+type EthersProvider = ethers.BrowserProvider | ethers.AbstractProvider | undefined;
+
 interface GameContextType {
   contract?: ethers.Contract;
-  provider?: ethers.BrowserProvider;
+  provider?: EthersProvider;
+  signer?: ethers.JsonRpcSigner;
+
   clientPlayerAddress: string;
   clientPlayerBalance: string;
   availableRooms: RoomType[];
@@ -34,6 +38,7 @@ interface GameContextType {
   skipTurn: () => Promise<void>;
   getAvailableRooms: () => Promise<void>;
   getPlayers: () => Promise<void>;
+  connect: () => Promise<void>;
   error: string;
 }
 
@@ -56,9 +61,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
   const [contract, setContract] = useState<ethers.Contract | undefined>(
     undefined
   );
-  const [provider, setProvider] = useState<ethers.BrowserProvider | undefined>(
+  const [provider, setProvider] = useState<EthersProvider>(
     undefined
   );
+  const [signer, setSigner] = useState<ethers.JsonRpcSigner | null>(null);
+
   const [clientPlayerAddress, setClientPlayerAddress] = useState<string>("");
   const [clientPlayerBalance, setClientPlayerBalance] = useState("");
   const [roomData, setRoomData] = useState<RoomType | null>(null);
@@ -68,38 +75,49 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Helper to get contract instance using ethers.
   const initConnection = useCallback(async () => {
-    if (typeof window.ethereum === "undefined") {
+    if (typeof window.ethereum === "undefined" || !window.ethereum) {
       setError(errors.NO_WEB3_FOUND);
-      throw new Error("Ethereum object not found");
-    }
+      // If MetaMask is not installed, we use the default provider,
+      console.log("MetaMask not installed; using read-only defaults");
+      const _provider = ethers.getDefaultProvider();
+      setProvider(_provider);
 
-    try {
-      const _provider = new ethers.BrowserProvider(window.ethereum);
-      const accounts = (await _provider.send(
-        "eth_requestAccounts",
-        []
-      )) as string[];
-      if (!accounts || accounts.length === 0) {
-        setError(errors.NO_ACCOUNTS_FOUND);
-        throw new Error("No accounts found");
+    } else {
+      try {
+        const _provider = new ethers.BrowserProvider(window.ethereum, {
+          chainId: 1337, // Hardcoded for local network
+        });
+        const _signer = await _provider.getSigner();
+        await _provider.send("eth_accounts", []);
+        const accounts = (await _provider.send(
+          "eth_requestAccounts",
+          []
+        )) as string[];
+        // const accounts = await window.ethereum.request({method: 'eth_accounts'}) as string[];
+
+        if (!accounts || accounts.length === 0) {
+          setError(errors.NO_ACCOUNTS_FOUND);
+          throw new Error("No accounts found");
+        }
+
+        const balance = await _provider.getBalance(accounts[0]);
+        console.log("Connected to Ethereum:", accounts[0], balance.toString());
+
+        const _contract = new ethers.Contract(
+          contractAddress,
+          NumberJackJSON.abi,
+          _provider
+        );
+
+        setProvider(_provider);
+        setSigner(_signer);
+        setClientPlayerAddress(accounts[0]);
+        setClientPlayerBalance(bigIntToString(balance));
+        setContract(_contract);
+      } catch (error) {
+        console.error("Error connecting to Ethereum", error);
+        throw new Error("Error connecting to Ethereum");
       }
-
-      const balance = await _provider.getBalance(accounts[0]);
-
-      const _contract = new ethers.Contract(
-        contractAddress,
-        NumberJackJSON.abi,
-        provider
-      );
-
-      setProvider(provider);
-      setClientPlayerAddress(accounts[0]);
-      setClientPlayerBalance(bigIntToString(balance));
-      setContract(_contract);
-      return _contract;
-    } catch (error) {
-      console.error("Error connecting to Ethereum", error);
-      throw new Error("Error connecting to Ethereum");
     }
   }, []);
 
@@ -114,7 +132,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
       console.log("🚀 Game Created!", _room.id);
       if (!roomData) setAvailableRooms([...availableRooms, _room]);
     });
-
     socketService.on(
       "playerJoined",
       (data: { roomId: string; player: string }) => {
@@ -213,7 +230,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
         }
       }
     );
-
     socketService.on(
       "playerOut",
       (data: { roomId: string; player: string }) => {
@@ -233,7 +249,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
         }
       }
     );
-
     socketService.on(
       "playerWon",
       (data: { roomId: string; player: string }) => {
@@ -273,7 +288,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
         }
       }
     );
-
     socketService.on("roomClosed", (roomId: string) => {
       console.log("🚀 Game Created!", roomId);
       const updatedRooms = availableRooms.filter(
@@ -313,7 +327,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
         entryFee.toString(),
         mode
       );
-      console.log("Game Room Created:", gameId, creator, entryFee);
       getAvailableRooms();
     };
 
@@ -345,21 +358,29 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
 
     // Listen for events from the contract
     contract.on("GameRoomCreated", handleGameRoomCreated);
-    contract.on("GameRoomJoined", handlePlayerJoined);
+    contract.on("PlayerJoined", handlePlayerJoined);
     contract.on("GameStarted", handleGameStarted);
-    contract.on("TurnPlayed", handleTurnPlayed);
+    // contract.on("TurnPlayed", handleTurnPlayed);
     contract.on("TurnSkipped", handleTurnSkipped);
 
     return () => {
       if (contract) {
         contract.removeListener("GameRoomCreated", handleGameRoomCreated);
-        contract.removeListener("GameRoomJoined", handlePlayerJoined);
+        contract.removeListener("PlayerJoined", handlePlayerJoined);
         contract.removeListener("GameStarted", handleGameStarted);
         contract.removeListener("TurnPlayed", handleTurnPlayed);
         contract.removeListener("TurnSkipped", handleTurnSkipped);
       }
     };
   }, [contract]);
+
+  const handleConnect = async () => {
+    try {
+      await initConnection();
+    } catch (error) {
+      console.error("Error connecting to Ethereum", error);
+    }
+  };
 
   // Create a new game room by calling createGameRoom on the contract.
   const createRoom = async (newRoom: RoomType) => {
@@ -607,8 +628,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
           let color = randomPlayerColor();
           let name = "Player" + (index + 1);
           if (existingPlayer) {
-            color = existingPlayer.color
-            name = existingPlayer.name
+            color = existingPlayer.color;
+            name = existingPlayer.name;
           }
 
           return {
@@ -645,6 +666,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
     skipTurn,
     getAvailableRooms,
     getPlayers,
+    connect: handleConnect,
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
