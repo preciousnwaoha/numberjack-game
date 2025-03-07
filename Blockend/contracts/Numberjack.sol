@@ -9,35 +9,53 @@ contract NumberJackGame {
     uint256 public skipFee = 10; // Fee (in tokens) to skip turn
 
     // Game status and mode enumerations
-    enum GameStatus { NotStarted, InProgress, Ended }
+    enum GameStatus {
+        NotStarted,
+        InProgress,
+        Ended
+    }
+    enum GameMode {
+        Rounds,
+        TimeBased
+    }
 
     // The game room now tracks turn-related timing
     struct GameRoom {
         address creator;
-        uint256 gameId;
+        uint256 id;
         uint256 maxNumber;
         uint256 entryFee;
         address[] players;
         bool isActive;
         GameStatus status;
-        uint256 rounds;         // Maximum rounds (round-based mode)
-        uint256 currentRound;   // Current round number (round-based mode)
+        GameMode mode;
+        uint256 startTime; // Game start (for time-based mode)
+        uint256 duration; // Total game duration (time-based mode)
+        uint256 roundValue; // Maximum rounds (round-based mode)
+        uint256 roundCurrentValue; // Current round number (round-based mode)
         uint256 currentPlayerIndex; // Which player’s turn it is (round-based mode)
-        uint256 lastTurnTimestamp;  // When the current turn began
-        uint256 turnTimeout;        // Maximum allowed time per turn (seconds)
-
-        // Add total Money for the room
+        uint256 lastTurnTimestamp; // When the current turn began
+        uint256 turnTimeout; // Maximum allowed time per turn (seconds)
     }
 
     mapping(uint256 => GameRoom) public gameRooms;
-    mapping(uint256 => mapping(address => uint256)) public playerScores;
+    // Removed the previous playerScores mapping.
+    // New mapping to keep track of each player's draws.
+    // Their draws are stored as a flat array: [prev1, prev2, newDraw1, newDraw2, ...]
+    mapping(uint256 => mapping(address => uint256[])) public playerDraws;
     mapping(uint256 => mapping(address => bool)) public isEliminated;
     uint256 public roomCounter;
 
     GameRoom[] private allGameRooms;
 
     // Events for various actions
-    event GameRoomCreated(uint256 roomId, address creator, uint256 maxNumber, uint256 entryFee, uint256 rounds);
+    event GameRoomCreated(
+        uint256 roomId,
+        address creator,
+        uint256 maxNumber,
+        uint256 entryFee,
+        GameMode mode
+    );
     event PlayerJoined(uint256 roomId, address player);
     event GameStarted(uint256 _roomId);
     event PlayerPlayed(uint256 _roomId, address player);
@@ -46,8 +64,12 @@ contract NumberJackGame {
     event NoWinner(uint256 roomId, uint256 prizeTransferredToOwner);
     event TurnSkipped(uint256 roomId, address player);
     event TurnTimedOut(uint256 roomId, address timedOutPlayer);
-    event TurnAdvanced(uint256 roomId, address newPlayer, uint256 currentRound, uint256 turnStartTime);
-
+    event TurnAdvanced(
+        uint256 roomId,
+        address newPlayer,
+        uint256 currentRound,
+        uint256 turnStartTime
+    );
 
     constructor(address gameTokenAddress) {
         owner = msg.sender;
@@ -57,24 +79,28 @@ contract NumberJackGame {
     // Create a game room; _turnTimeout sets the max time (in seconds) for each turn.
     function createGameRoom(
         uint256 _maxNumber,
-        uint256 _entryFee,
-        uint256 _rounds,
+        GameMode _mode,
+        uint256 _durationOrRounds,
         uint256 _turnTimeout
     ) external payable {
         require(_maxNumber > 0, "Max number must be > 0");
-        require(_entryFee > 0, "Entry fee must be > 0");
-        require(msg.value == _entryFee, "Incorrect entry fee");
+        require(msg.value > 0, "Entry fee must be greater than zero");
 
         roomCounter++;
         GameRoom storage room = gameRooms[roomCounter];
         room.creator = msg.sender;
-        room.gameId == roomCounter;
+        room.id = roomCounter; // fixed assignment from '==' to '='
         room.maxNumber = _maxNumber;
-        room.entryFee = _entryFee;
+        room.entryFee = msg.value;
         room.isActive = true;
         room.status = GameStatus.NotStarted;
-        room.rounds = _rounds;
-        room.currentRound = 1;
+        room.mode = _mode;
+        if (_mode == GameMode.Rounds) {
+            room.roundValue = _durationOrRounds;
+        } else {
+            room.duration = _durationOrRounds;
+        }
+        room.roundCurrentValue = 1;
         room.currentPlayerIndex = 0;
         room.turnTimeout = _turnTimeout;
         // lastTurnTimestamp will be set when the game starts
@@ -83,9 +109,13 @@ contract NumberJackGame {
 
         allGameRooms.push(room);
 
-
-        emit GameRoomCreated(roomCounter, msg.sender, _maxNumber, _entryFee, _rounds);
-
+        emit GameRoomCreated(
+            roomCounter,
+            msg.sender,
+            _maxNumber,
+            msg.value,
+            _mode
+        );
         emit PlayerJoined(roomCounter, msg.sender);
     }
 
@@ -118,9 +148,30 @@ contract NumberJackGame {
     }
 
     // Internal helper to generate two random draws (1-100) based on input nonce.
-    function _getDraws(address _player, uint256 _nonce) internal view returns (uint256, uint256) {
-        uint256 first = (uint256(keccak256(abi.encodePacked(block.timestamp, block.prevrandao, _player, _nonce))) % 100) + 1;
-        uint256 second = (uint256(keccak256(abi.encodePacked(block.timestamp, block.prevrandao, _player, _nonce + 1))) % 100) + 1;
+    function _getDraws(
+        address _player,
+        uint256 _nonce
+    ) internal view returns (uint256, uint256) {
+        uint256 first = (uint256(
+            keccak256(
+                abi.encodePacked(
+                    block.timestamp,
+                    block.prevrandao,
+                    _player,
+                    _nonce
+                )
+            )
+        ) % 100) + 1;
+        uint256 second = (uint256(
+            keccak256(
+                abi.encodePacked(
+                    block.timestamp,
+                    block.prevrandao,
+                    _player,
+                    _nonce + 1
+                )
+            )
+        ) % 100) + 1;
         return (first, second);
     }
 
@@ -128,17 +179,29 @@ contract NumberJackGame {
     function playTurn(uint256 _roomId) external returns (uint256, uint256) {
         GameRoom storage room = gameRooms[_roomId];
         require(room.status == GameStatus.InProgress, "Game not in progress");
-        require(room.players[room.currentPlayerIndex] == msg.sender, "Not your turn");
+        require(
+            room.players[room.currentPlayerIndex] == msg.sender,
+            "Not your turn"
+        );
         require(!isEliminated[_roomId][msg.sender], "You are eliminated");
 
-        // Check that the current player hasn’t exceeded the allowed turn time.
-        // require(block.timestamp <= room.lastTurnTimestamp + room.turnTimeout, "Turn timed out, force skip");
+        (uint256 draw1, uint256 draw2) = _getDraws(
+            msg.sender,
+            room.roundCurrentValue + room.currentPlayerIndex
+        );
 
-        (uint256 draw1, uint256 draw2) = _getDraws(msg.sender, room.currentRound + room.currentPlayerIndex);
-        uint256 totalDraw = draw1 + draw2;
-        playerScores[_roomId][msg.sender] += totalDraw;
+        // Instead of accumulating the total draw, we store the pair in the player's draw history.
+        playerDraws[_roomId][msg.sender].push(draw1);
+        playerDraws[_roomId][msg.sender].push(draw2);
 
-        if (playerScores[_roomId][msg.sender] > room.maxNumber) {
+        // Calculate the sum of all draws for this player.
+        uint256 sum = 0;
+        uint256[] storage draws = playerDraws[_roomId][msg.sender];
+        for (uint256 i = 0; i < draws.length; i++) {
+            sum += draws[i];
+        }
+
+        if (sum > room.maxNumber) {
             isEliminated[_roomId][msg.sender] = true;
             emit PlayerEliminated(_roomId, msg.sender);
         }
@@ -154,10 +217,16 @@ contract NumberJackGame {
     function skipTurn(uint256 _roomId) external {
         GameRoom storage room = gameRooms[_roomId];
         require(room.status == GameStatus.InProgress, "Game not in progress");
-        require(room.players[room.currentPlayerIndex] == msg.sender, "Not your turn");
+        require(
+            room.players[room.currentPlayerIndex] == msg.sender,
+            "Not your turn"
+        );
         require(!isEliminated[_roomId][msg.sender], "You are eliminated");
 
-        require(gameToken.transferFrom(msg.sender, owner, skipFee), "Token transfer failed");
+        require(
+            gameToken.transferFrom(msg.sender, owner, skipFee),
+            "Token transfer failed"
+        );
         emit TurnSkipped(_roomId, msg.sender);
         _advanceTurn(_roomId);
     }
@@ -167,7 +236,10 @@ contract NumberJackGame {
     function forceAdvance(uint256 _roomId) external {
         GameRoom storage room = gameRooms[_roomId];
         require(room.status == GameStatus.InProgress, "Game not in progress");
-        require(block.timestamp > room.lastTurnTimestamp + room.turnTimeout, "Turn not timed out yet");
+        require(
+            block.timestamp > room.lastTurnTimestamp + room.turnTimeout,
+            "Turn not timed out yet"
+        );
 
         address timedOutPlayer = room.players[room.currentPlayerIndex];
         isEliminated[_roomId][timedOutPlayer] = true;
@@ -184,15 +256,22 @@ contract NumberJackGame {
         // Set the turn start time for the new turn.
         room.lastTurnTimestamp = block.timestamp;
         do {
-            room.currentPlayerIndex = (room.currentPlayerIndex + 1) % playersCount;
+            room.currentPlayerIndex =
+                (room.currentPlayerIndex + 1) %
+                playersCount;
             if (room.currentPlayerIndex == 0) {
-                room.currentRound++;
+                room.roundCurrentValue++;
             }
             // Break if we've looped over all players.
             if (room.currentPlayerIndex == startingIndex) break;
         } while (isEliminated[_roomId][room.players[room.currentPlayerIndex]]);
 
-        emit TurnAdvanced(_roomId, room.players[room.currentPlayerIndex], room.currentRound, room.lastTurnTimestamp);
+        emit TurnAdvanced(
+            _roomId,
+            room.players[room.currentPlayerIndex],
+            room.roundCurrentValue,
+            room.lastTurnTimestamp
+        );
     }
 
     // This function concludes the game and determines the winner.
@@ -211,15 +290,22 @@ contract NumberJackGame {
             if (!isEliminated[_roomId][room.players[i]]) {
                 remainingPlayers++;
                 lastPlayer = room.players[i];
-                if (playerScores[_roomId][room.players[i]] < lowestScore) {
-                    lowestScore = playerScores[_roomId][room.players[i]];
+                // Calculate the total score by summing all draws for the player.
+                uint256 total = 0;
+                uint256[] storage draws = playerDraws[_roomId][room.players[i]];
+                for (uint256 j = 0; j < draws.length; j++) {
+                    total += draws[j];
+                }
+                if (total < lowestScore) {
+                    lowestScore = total;
                     lowestScorer = room.players[i];
                 }
             }
         }
         uint256 prize = room.players.length * room.entryFee;
 
-        if (remainingPlayers == 1 || room.currentRound > room.rounds) {
+        // Note: fixed reference from room.currentRound and room.rounds to room.roundCurrentValue and room.roundValue
+        if (remainingPlayers == 1 || room.roundCurrentValue > room.roundValue) {
             payable(lastPlayer).transfer(prize);
             emit WinnerDeclared(_roomId, lastPlayer, prize);
         } else if (remainingPlayers == 0) {
@@ -237,23 +323,60 @@ contract NumberJackGame {
 
     /// GETTER FUNCTIONS
 
-    function getGameRoomById(uint256 _gameRoomId) public view returns (GameRoom memory) {
+    function getGameRoomById(
+        uint256 _gameRoomId
+    ) public view returns (GameRoom memory) {
         return gameRooms[_gameRoomId];
     }
 
-    function getALlGameRooms() public view returns (GameRoom[] memory) {
+    function getAllGameRooms() public view returns (GameRoom[] memory) {
         return allGameRooms;
     }
 
-    function getPlayerScoresForEachGameRoom(uint256 _roomId, address _player) public view returns (uint256) {
-        return playerScores[_roomId][_player];
+    // Returns the draw history for a given room and player.
+    function getPlayerDrawsForGameRoom(
+        uint256 _roomId,
+        address _player
+    ) public view returns (uint256[] memory) {
+        return playerDraws[_roomId][_player];
     }
 
-    function getIsPlayerEliminatedByRoomId(uint256 _roomId, address _player) public view returns (bool) {
+    function getIsPlayerEliminatedByRoomId(
+        uint256 _roomId,
+        address _player
+    ) public view returns (bool) {
         return isEliminated[_roomId][_player];
     }
 
     function getTotalRoomsCreated() public view returns (uint256) {
         return roomCounter;
+    }
+
+    function getAvailableRooms() public view returns (GameRoom[] memory) {
+        // First, count how many rooms are available.
+        uint256 availableCount = 0;
+        for (uint256 i = 0; i < allGameRooms.length; i++) {
+            if (
+                allGameRooms[i].isActive &&
+                allGameRooms[i].status == GameStatus.NotStarted
+            ) {
+                availableCount++;
+            }
+        }
+
+        // Allocate a new array with the exact count.
+        GameRoom[] memory availableRooms = new GameRoom[](availableCount);
+        uint256 index = 0;
+        for (uint256 i = 0; i < allGameRooms.length; i++) {
+            if (
+                allGameRooms[i].isActive &&
+                allGameRooms[i].status == GameStatus.NotStarted
+            ) {
+                availableRooms[index] = allGameRooms[i];
+                index++;
+            }
+        }
+
+        return availableRooms;
     }
 }
