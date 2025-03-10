@@ -33,15 +33,10 @@ const CreateRoom: React.FC<CreateRoomProps> = ({ onBack }) => {
     }
 
     createRoom({
-      creator: clientPlayerAddress,
-      name: roomName,
-      id: 1,
-      players: [clientPlayerAddress],
-      mode,
-      modeValue,
       maxNumber,
-      started: false,
-      fee,
+      entryFee: fee,
+      modeValue,
+      mode,
     });
   };
 

@@ -11,7 +11,7 @@ const StatusBar = () => {
   }, 0);
 
   return (
-    <Card>
+    <Card className="flex justify-between p-4" >
       <div>
         <div>{clientPlayerAddress}</div>
 

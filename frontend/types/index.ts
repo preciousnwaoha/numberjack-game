@@ -1,3 +1,5 @@
+import type { ethers } from "ethers";
+
 export interface PlayerType {
   name: string;
   address: string,
@@ -13,6 +15,24 @@ export type GameModeType = "Rounds" | "TimeBased";
 
 export type GameStatusType = "NotStarted" | "InProgress" | "Ended";
 
+export type ContractRoomType = {
+  creator: string;
+  id: string;
+  maxNumber: number;
+  entryFee: number;
+  players: string[];
+  isActive: boolean;
+  status: number;
+  mode: number;
+  modeValue: number;
+  startTime: number;
+  endTime: number;
+  currentPlayerIndex: number;
+  lastTurnTimestamp: number;
+  turnTimeout: number;
+}
+
+
 export interface RoomType {
   creator: string; // address of creatoe
   name: string;
@@ -26,7 +46,7 @@ export interface RoomType {
   status: GameStatusType;
   entryFee: number;
   startTime: number;
-  duration: number;
+  endTime: number;
   currentPlayerIndex: number;
   lastTurnTimestamp: number;
   turnTimeout: number;
@@ -38,3 +58,10 @@ export interface GameType {
   players: PlayerType[],
   winner: string,
 }
+
+
+export type EthersProvider =
+  | ethers.BrowserProvider
+  | ethers.AbstractProvider
+  | undefined;
+
