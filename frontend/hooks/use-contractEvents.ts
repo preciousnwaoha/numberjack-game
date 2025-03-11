@@ -100,15 +100,44 @@ const useContractEvents = ({
         }
       }
 
-      console.log("Game Room Joined:", roomId, playerAddress);
+      console.log("Event: Game Room Joined:", roomId, playerAddress);
     };
 
+    const handlePlayerLeft = (...args: unknown[]) => { // TOD0: Emit the player who left
+      const roomId = Number(args[0]).toString();
+      const playerAddress = args[1] as string;
+      if (roomData?.id === roomId) {
+        setPlayers((prev) => prev.filter((p) => p.address !== playerAddress));
+        setRoomData((prev) =>
+          prev
+            ? {
+                ...prev,
+                players: roomData.players.filter((p) => p !== playerAddress),
+              }
+            : null
+        );
+      } else if (!roomData) {
+        setAvailableRooms((prev) =>
+          prev.map((room) =>
+            room.id === roomId
+              ? {
+                  ...room,
+                  players: room.players.filter((p) => p !== playerAddress),
+                }
+              : room
+          )
+        );
+      }
+
+      console.log("Event: Player Left:", args);
+    }
+
     const handleGameStarted = (...args: unknown[]) => { // TODO: Emit Time started
-      console.log("Game Started:", args);
+      console.log("Event: Game Started:", args);
     };
 
     const handleTurnPlayed = (...args: unknown[]) => { // TODO: Emit the Draws
-      console.log("Turn Played:", args);
+      console.log("Event: Turn Played:", args);
     };
 
     const handleTurnSkipped = (...args: unknown[]) => {
@@ -138,25 +167,77 @@ const useContractEvents = ({
           ...prev,
           currentPlayerIndex: prev.players.findIndex(addr => addr === playerAddress),
         } : null)
+
+        console.log("Event: Turn Advanced:", args);
+      }
+    }
+
+
+    const handlePlayerEliminated = (...args: unknown[]) => { // TODO: Why cant we get player {draws, totoal, address, isActive}
+      const roomId = Number(args[0]).toString() as string;
+      const playerAddress = args[1] as string;
+      if (roomData?.id === roomId) {
+        setPlayers(prev => prev.map(player => {
+          if (player.address === playerAddress) {
+            return {
+              ...player,
+              isActive: false
+            }
+          } else {
+            return player
+          }
+        }))
+
+        console.log("Event: Player Eliminated:", args);
+      }
+    }
+
+    const handleWinnerDeclared = (...args: unknown[]) => { // TODO: Why cant we get winner for a game
+      const roomId = Number(args[0]).toString() as string;
+      const winnerAddress = args[1] as string;
+      if (roomData?.id === roomId) {
+        setRoomData(prev => prev ? {
+          ...prev,
+          status: "Ended",
+          winner: winnerAddress
+        } : null)
+
+        console.log("Event: Winner Declared:", args);
+      }
+    }
+
+    const handleTurnTimeout = (...args: unknown[]) => {
+      const roomId = Number(args[0]).toString() as string;
+      // const playerAddress = args[1] as string;
+      if (roomData?.id === roomId) {
+        console.log("Event: Turn Timeout:", args );
       }
     }
 
     // Listen for events from the contract
     contract.on("GameRoomCreated", handleGameRoomCreated);
     contract.on("PlayerJoined", handlePlayerJoined);
+    // contract.on("PlayerLeft", handlePlayerLeft);
     contract.on("GameStarted", handleGameStarted);
     contract.on("PlayerPlayed", handleTurnPlayed);
     contract.on("TurnSkipped", handleTurnSkipped);
+    contract.on("TurnTimeout", handleTurnTimeout);
     contract.on("TurnAdvanced", handleTurnAdvanced);
+    contract.on("PlayerEliminated", handlePlayerEliminated);
+    contract.on("WinnerDeclared", handleWinnerDeclared);
 
     return () => {
       if (contract) {
         contract.removeListener("GameRoomCreated", handleGameRoomCreated);
         contract.removeListener("PlayerJoined", handlePlayerJoined);
+        // contract.removeListener("PlayerLeft", handlePlayerLeft);
         contract.removeListener("GameStarted", handleGameStarted);
         contract.removeListener("PlayerPlayed", handleTurnPlayed);
         contract.removeListener("TurnSkipped", handleTurnSkipped);
+        // contract.removeListener("TurnTimeout", handleTurnTimeout);
         contract.removeListener("TurnAdvanced", handleTurnAdvanced);
+        contract.removeListener("PlayerEliminated", handlePlayerEliminated);
+        contract.removeListener("WinnerDeclared", handleWinnerDeclared);
       }
     };
   }, [contract]);
