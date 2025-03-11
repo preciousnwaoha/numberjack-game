@@ -70,6 +70,7 @@ contract NumberJackGame {
         uint256 currentRound,
         uint256 turnStartTime
     );
+    event GameEnded(uint256 roomId, address creator);
 
     constructor(address gameTokenAddress) {
         owner = msg.sender;
@@ -378,5 +379,19 @@ contract NumberJackGame {
         }
 
         return availableRooms;
+    }
+
+    function endGame(uint256 _roomId) external {
+        GameRoom storage room = gameRooms[_roomId];
+        require(room.status == GameStatus.InProgress, "Game not in progress");
+
+        uint256 prize = room.players.length * room.entryFee;
+
+        payable(room.creator).transfer(prize);
+
+        room.isActive = false;
+        room.status = GameStatus.Ended;
+
+        emit GameEnded(_roomId, room.creator);
     }
 }
