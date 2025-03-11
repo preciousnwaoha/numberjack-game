@@ -14,12 +14,14 @@ import CreateRoom from "./CreateRoom";
 type View = "enterGame" | "createRoom" | "joinRoom";
 
 const EnterGame: React.FC = () => {
-  const { roomData, connect, } = useGame();
+  const { roomData, } = useGame();
   const [view, setView] = useState<View>("enterGame");
 
   const handleChangeView = (view: View) => {
     setView(view);
   };
+
+  console.log("roomData", roomData);
 
   if (roomData) {
     if (roomData.status === "InProgress") {

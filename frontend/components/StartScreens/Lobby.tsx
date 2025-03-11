@@ -13,7 +13,7 @@ const Lobby: React.FC = () => {
     return null;
   }
 
-  const creatorIsClient = clientPlayerAddress === roomData.creator;
+  const creatorIsClient = clientPlayerAddress.toLowerCase() === roomData.creator.toLowerCase();
 
   return (
     <div className={""}>
@@ -63,12 +63,12 @@ const Lobby: React.FC = () => {
           <div>
             <p>Game Mode</p>
             <p>{roomData.mode}</p>
-            <p>{roomData.modeValue}</p>
+            <p>{roomData.roundValue}</p>
           </div>
 
           <div>
             <p> No of Rounds</p>
-            <p>{roomData.modeValue}</p>
+            <p>{roomData.roundValue}</p>
           </div>
 
           <div>

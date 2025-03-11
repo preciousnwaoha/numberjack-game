@@ -19,7 +19,7 @@ interface CreateRoomProps {
 }
 
 const CreateRoom: React.FC<CreateRoomProps> = ({ onBack }) => {
-  const { createRoom, clientPlayerAddress, error } = useGame();
+  const { createRoom, error } = useGame();
   const [roomName, setRoomName] = useState("Some Name");
   const [players, setPlayers] = useState(2);
   const [maxNumber, setMaxNumber] = useState(21);

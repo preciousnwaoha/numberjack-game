@@ -1,28 +1,26 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { ethers, Typed } from "ethers";
-import { socketService } from "@/services/socket";
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { ethers } from "ethers";
 
 import { errors } from "@/lib/errors";
-import {
-  EthersProvider,
-  GameModeType,
-  GameStatusType,
-  PlayerType,
-  RoomType,
-} from "@/types";
+import { EthersProvider, PlayerType, RoomType } from "@/types";
 import {
   connectWalletApi,
   createRoomApi,
   CreateRoomApiParams,
   getAvailableRoomsApi,
+  getPlayerRoomApi,
   getPlayersApi,
   joinRoomApi,
   playTurnApi,
   skipTurnApi,
   startGameApi,
 } from "@/lib/contracts/api";
+import useSocket from "@/hooks/use-socket";
+import useContractEvents from "@/hooks/use-contractEvents";
+// import useNetwork from "@/hooks/use-network";
+import { getNextPlayerIndex, randomPlayerColor } from "@/lib/utils";
 
 interface GameContextType {
   contract?: ethers.Contract;
@@ -35,15 +33,16 @@ interface GameContextType {
   roomData: RoomType | null;
   players: PlayerType[];
   createRoom: (room: CreateRoomApiParams) => Promise<void>;
-  joinRoom: (roomId: number) => Promise<void>;
+  joinRoom: (roomId: string) => Promise<void>;
   startGame: () => Promise<void>;
   drawCard: () => Promise<void>;
   skipTurn: () => Promise<void>;
   getAvailableRooms: () => Promise<void>;
-  getPlayers: () => Promise<void>;
+  getPlayers: (roomId: string) => Promise<void>;
   connect: () => Promise<void>;
   error: string;
   loading: string;
+  onLoading: (message: string) => void;
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -73,124 +72,90 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
   const [error, setError] = useState("");
   const [loading, setLoading] = useState("");
 
-  // Listen for account or network changes and update connection state accordingly.
+  const { socketEmitter } = useSocket({
+    setPlayers,
+    setRoomData,
+    setAvailableRooms,
+    players,
+    roomData,
+  });
+
+  useContractEvents({
+    socketEmitter,
+    contract,
+    setRoomData,
+    setAvailableRooms,
+    setPlayers,
+    clientPlayerAddress,
+    roomData,
+    availableRooms,
+  });
+
+  // useNetwork({
+  //   setConnected,
+  //   setClientPlayerAddress,
+  //   setSigner,
+  // });
+
   useEffect(() => {
-    if (window.ethereum) {
-      const handleAccountsChanged = (accounts: string[]) => {
-        if (accounts.length === 0) {
-          // Wallet disconnected or locked
-          setConnected(false);
-          setClientPlayerAddress("");
-          setSigner(null);
-        } else {
-          // Optionally, update the current account.
-          setClientPlayerAddress(accounts[0]);
-        }
-      };
-
-      const handleChainChanged = () => {
-        // Reloading ensures the app resets with the new network.
-        window.location.reload();
-      };
-
-      window.ethereum.on("accountsChanged", () => handleAccountsChanged);
-      window.ethereum.on("chainChanged", handleChainChanged);
-
-      return () => {
-        if (window.ethereum && window.ethereum.removeListener) {
-          window.ethereum.removeListener(
-            "accountsChanged",
-            handleAccountsChanged
-          );
-          window.ethereum.removeListener("chainChanged", handleChainChanged);
-        }
-      };
-    }
-  }, []);
-
-  // Optionally, check on load if the user already connected (without forcing connection).
-  useEffect(() => {
-    if (window.ethereum && window.ethereum.selectedAddress) {
-      // If an address is already available, you may want to update state,
-      // but you might also wait for a manual re-connect for better UX.
-      setClientPlayerAddress(window.ethereum.selectedAddress);
-      setConnected(true);
-    }
-  }, []);
-
-  // A separate effect for handling contract events.
-  useEffect(() => {
-    if (!contract) return;
-    // Define contract event handlers
-    const handleGameRoomCreated = (...args: unknown[]) => {
-      if (clientPlayerAddress === args[1]) {
-        setRoomData({
-          creator: args[1],
-          name: "Some Room Name",
-          id: Number(args[0]),
-          players: [clientPlayerAddress],
-          mode: "Rounds" as GameModeType,
-          modeValue: Number(args[4]),
-          modeCurrentValue: 1,
-          maxNumber: Number(args[2]),
-          isActive: true,
-          status: "NotStarted" as GameStatusType,
-          entryFee: Number(args[3]),
-          startTime: 0,
-          endTime: 0,
-          currentPlayerIndex: 0,
-          lastTurnTimestamp: 0,
-          turnTimeout: 0,
+    const getPlayerAndRoomData = async () => {
+      if (connected && contract && clientPlayerAddress) {
+        console.log("Starting getPlayerRoomApi");
+        const { error, data } = await getPlayerRoomApi({
+          contract,
+          playerAddress: clientPlayerAddress,
         });
-      } else {
-        getAvailableRooms();
+
+        console.log("Checking Data: ", { error, data });
+
+        if (error) {
+          setError(error);
+          return;
+        }
+
+        if (data) {
+          setRoomData(data.room);
+          setPlayers((prev) => {
+            return data.players.map((_player) => {
+              const playerInStore = prev.find((p) => p.address === _player.address);
+      
+              if (playerInStore) {
+                return {
+                  ...playerInStore,
+                  ..._player,
+                };
+              } else {
+                return {
+                  name: "Random Name",
+                  address: _player.address,
+                  draws: _player.draws,
+                  total: _player.total,
+                  isActive: _player.isActive,
+                  hasSkippedTurn: false, // TODO: provide player hasSkipped
+                  color: randomPlayerColor(),
+                  claimed: false,
+                };
+              }
+            });
+          });
+        }
       }
     };
 
-    const handlePlayerJoined = (gameId: number, player: string) => {
-      console.log("Game Room Joined:", gameId, player);
-      getPlayers();
-      // Optionally: refresh player list.
-    };
+    console.log("Effect check: ", {
+      connected,
+      contract,
+      clientPlayerAddress,
+    })
+    if (connected && contract && clientPlayerAddress) {
+      console.log("Connected, getting player and room data");
+      getPlayerAndRoomData();
+    }
+  }, [connected, contract, clientPlayerAddress]);
 
-    const handleGameStarted = (...args: unknown[]) => {
-      console.log("Game Started:", args);
-
-      getPlayers();
-    };
-
-    const handleTurnPlayed = (
-      gameId: number,
-      player: string,
-      draw1: number,
-      draw2: number
-    ) => {
-      console.log("Turn Played:", gameId, player, draw1, draw2);
-      getPlayers();
-    };
-
-    const handleTurnSkipped = (gameId: number, player: string) => {
-      console.log("Turn Played:", gameId, player);
-      getPlayers();
-    };
-
-    // Listen for events from the contract
-    contract.on("GameRoomCreated", handleGameRoomCreated);
-    contract.on("PlayerJoined", handlePlayerJoined);
-    contract.on("GameStarted", handleGameStarted);
-    contract.on("PlayerPlayed", handleTurnPlayed);
-    contract.on("TurnSkipped", handleTurnSkipped);
-
-    return () => {
-      if (contract) {
-        contract.removeListener("GameRoomCreated", handleGameRoomCreated);
-        contract.removeListener("PlayerJoined", handlePlayerJoined);
-        contract.removeListener("GameStarted", handleGameStarted);
-        contract.removeListener("PlayerPlayed", handleTurnPlayed);
-        contract.removeListener("TurnSkipped", handleTurnSkipped);
-      }
-    };
-  }, [contract]);
+  const handleLoading = (message: string) => {
+    setLoading(message);
+  };
 
   const connectWallet = async () => {
     const {
@@ -232,22 +197,21 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   // Join an existing room.
-  const joinRoom = async (roomId: number) => {
+  const joinRoom = async (roomId: string) => {
     if (!contract) {
       setError(errors.NO_CONTRACT_FOUND);
       return;
     }
     const { error, data } = await joinRoomApi({
-      roomId,
+      roomId: Number(roomId),
       contract,
     });
     if (error) {
       setError(error);
       return;
     }
-    if (data) {
-      setRoomData(data);
-    }
+
+    
   };
 
   // Start the game by calling startGame on the contract.
@@ -261,14 +225,28 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
       return;
     }
 
-    const { error } = await startGameApi({
-      roomId: roomData.id,
+    const { error, success } = await startGameApi({
+      roomId: Number(roomData.id),
       contract,
     });
 
     if (error) {
       setError(error);
       return;
+    }
+
+    if (success) {
+      const startTime = Date.now();
+      setRoomData((prev) =>
+        prev
+          ? {
+              ...prev,
+              startTime,
+              status: "InProgress",
+            }
+          : null
+      );
+      socketEmitter("startGame", { roomId: roomData.id, startTime });
     }
   };
 
@@ -284,7 +262,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     const { draws, error } = await playTurnApi({
-      roomId: roomData.id,
+      roomId: Number(roomData.id),
       contract,
     });
 
@@ -293,11 +271,41 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
       return;
     }
 
-    // TODO: Add draws to player
-    // socketService.emit("playerMoved", {
-    //   playerId: clientPlayerAddress,
-    //   move: { draw1: draw1.toString(), draw2: draw2.toString() },
-    // });
+    if (draws) {
+      // Update the player's draws and total score.
+      setPlayers((prev) => {
+        const updatedPlayers = prev.map((p) => {
+          if (p.address === clientPlayerAddress) {
+            return {
+              ...p,
+              draws: [...p.draws, ...draws],
+              total: p.total + draws[0] + draws[1],
+            };
+          }
+          return p;
+        });
+
+        return updatedPlayers;
+      });
+      // Update the current player index.
+      setRoomData((prev) =>
+        prev
+          ? {
+              ...prev,
+              currentPlayerIndex: (prev.currentPlayerIndex + 1) % prev.players.length,
+            }
+          : null
+      );
+
+      // Emit the draw event to the socket.
+      socketEmitter("playerDraw", {
+        roomId: roomData.id,
+        playerAddress: clientPlayerAddress,
+        draws: draws,
+      });
+    }
+
+    console.log("Draws:", draws);
   };
 
   // Skip the current turn.
@@ -311,14 +319,44 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
       return;
     }
 
-    const { error } = await skipTurnApi({
-      roomId: roomData.id,
+    const { error, success } = await skipTurnApi({
+      roomId: Number(roomData.id),
       contract,
     });
 
     if (error) {
       setError(error);
       return;
+    }
+
+    if (success) {
+      setPlayers((prev) => {
+        const updatedPlayers = prev.map((p) => {
+          if (p.address === clientPlayerAddress) {
+            return {
+              ...p,
+              hasSkippedTurn: true,
+            };
+          }
+          return p;
+        });
+
+        return updatedPlayers;
+      });
+
+      setRoomData((prev) =>
+        prev
+          ? {
+              ...prev,
+              currentPlayerIndex: (prev.currentPlayerIndex + 1) % prev.players.length,
+            }
+          : null
+      );
+
+      socketEmitter("playerSkipped", {
+        roomId: roomData.id,
+        playerAddress: clientPlayerAddress,
+      });
     }
   };
 
@@ -328,23 +366,25 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
       setError(errors.NO_CONTRACT_FOUND);
       return;
     }
-
+    setLoading("Fetching available rooms...");
     const { error, success, data } = await getAvailableRoomsApi({
       contract,
     });
 
     if (error) {
       setError(error);
+      setLoading("");
       return;
     }
 
     if (success && data) {
       setAvailableRooms(data);
+      setLoading("");
     }
   };
 
   // Retrieve players from the current room and update local state.
-  const getPlayers = async () => {
+  const getPlayers = async (roomId: string) => {
     if (!roomData) {
       setError(errors.NO_GAME_ROOM_FOUND);
       return;
@@ -355,7 +395,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     const { error, data } = await getPlayersApi({
-      roomId: roomData.id,
+      roomId: Number(roomId),
       contract,
     });
 
@@ -364,20 +404,29 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
       return;
     }
 
-    const updatedPlayers = data
-      .map((_player) => {
-        const playerInStore = players.find(
-          (p) => p.address === _player.address
-        );
+    setPlayers((prev) => {
+      return data.map((_player) => {
+        const playerInStore = prev.find((p) => p.address === _player.address);
+
         if (playerInStore) {
           return {
             ...playerInStore,
             ..._player,
           };
+        } else {
+          return {
+            name: "Random Name",
+            address: _player.address,
+            draws: _player.draws,
+            total: _player.total,
+            isActive: _player.isActive,
+            hasSkippedTurn: false, // TODO: provide player hasSkipped
+            color: randomPlayerColor(),
+            claimed: false,
+          };
         }
-      })
-      .filter(Boolean) as PlayerType[];
-    setPlayers(updatedPlayers);
+      });
+    });
   };
 
   const value: GameContextType = {
@@ -400,6 +449,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
     getAvailableRooms,
     getPlayers,
     connect: connectWallet,
+    onLoading: handleLoading,
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

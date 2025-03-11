@@ -1,17 +1,31 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Card } from "../ui/card";
 import { DUMMY_PLAYERS } from "@/lib/dummy";
 import { BsSkipForwardCircleFill } from "react-icons/bs";
 import { ImDice } from "react-icons/im";
 import { Button } from "../ui/button";
 import { TIME_TO_PLAY } from "@/lib/constants";
+import { useGame } from "@/context/GameContext";
 
 const PlayerActionsCard = () => {
-  const player = DUMMY_PLAYERS[0];
+  const {players, roomData, clientPlayerAddress} = useGame()
   const [count, setCount] = React.useState(TIME_TO_PLAY);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setCount(count - 1);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [])
+
+  
+  if (!roomData) return
+  const player = players[roomData.currentPlayerIndex]
 
   const last2Draws =
     player.draws && player.draws.length > 1 ? player.draws.slice(-2) : [0, 0];
+
+  const clientIsPlayer = clientPlayerAddress === player.address
 
   return (
     <Card className={"flex flex-col items-center gap-6 px-4 py-4"}>
@@ -36,7 +50,7 @@ const PlayerActionsCard = () => {
         ))}
       </div>
 
-      <div className={"flex flex-col gap-4 md:flex-row"}>
+      {clientIsPlayer && <div className={"flex flex-col gap-4 md:flex-row"}>
         <Button className={""}>
           <ImDice className={"inline"} />
           Draw number
@@ -46,7 +60,7 @@ const PlayerActionsCard = () => {
           <BsSkipForwardCircleFill className={"inline"} />
           Skip turn
         </Button>
-      </div>
+      </div>}
     </Card>
   );
 };

@@ -1,9 +1,9 @@
 import { ethers } from "ethers";
 
 export const GAME_CONTRACT_ADDRESS =
-  "0xcB2BD64d4dB8c66ac17432B49afa2d25B5CA6BbD";
+  "0x14463737586be49c86f3681FEa3Fa9D9BAA99b6d";
 export const TOKEN_CONTACT_ADDRESS =
-  "0x73d39Dd5D2e2F85A018b79402626cD685b2E8B8A";
+  "0x6a0e4B320e54DeBA4Adb5412e9cA0a30d4107855";
 
 export const CORE_CHAIN_ID = 1114;
 export const CORE_CHAIN_NETWORK_NAME = "Core Blockchain TestNet"

@@ -1,8 +1,7 @@
 import type { ethers } from "ethers";
-
 export interface PlayerType {
   name: string;
-  address: string,
+  address: string;
   draws: number[];
   total: number;
   isActive: boolean;
@@ -11,54 +10,43 @@ export interface PlayerType {
   claimed: boolean;
 }
 
-export type GameModeType = "Rounds" | "TimeBased";
+export type GameModeType = 'Rounds' | 'TimeBased';
 
-export type GameStatusType = "NotStarted" | "InProgress" | "Ended";
+export type GameStatusType = 'NotStarted' | 'InProgress' | 'Ended';
 
-export type ContractRoomType = {
+export type ContractRoomTypeWithoutStatusAndMode = {
   creator: string;
-  id: string;
   maxNumber: number;
   entryFee: number;
   players: string[];
   isActive: boolean;
+  roundValue: number;
+  roundCurrentValue: number;
+  startTime: number;
+  duration: number;
+  currentPlayerIndex: number;
+  lastTurnTimestamp: number;
+  turnTimeout: number;
+};
+
+export interface ContractRoomType extends ContractRoomTypeWithoutStatusAndMode {
+  id: number;
   status: number;
   mode: number;
-  modeValue: number;
-  startTime: number;
-  endTime: number;
-  currentPlayerIndex: number;
-  lastTurnTimestamp: number;
-  turnTimeout: number;
 }
 
-
-export interface RoomType {
-  creator: string; // address of creatoe
+export interface RoomType extends ContractRoomTypeWithoutStatusAndMode {
+  id: string;
   name: string;
-  id: number;
-  players: string[]; // Number of players expected when creating room
-  mode: GameModeType;
-  modeValue: number;
-  modeCurrentValue: number;
-  maxNumber: number;
-  isActive: boolean;
   status: GameStatusType;
-  entryFee: number;
-  startTime: number;
-  endTime: number;
-  currentPlayerIndex: number;
-  lastTurnTimestamp: number;
-  turnTimeout: number;
+  mode: GameModeType;
 }
-
 
 export interface GameType {
-  roomId: number,
-  players: PlayerType[],
-  winner: string,
+  roomId: number;
+  players: PlayerType[];
+  winner: string;
 }
-
 
 export type EthersProvider =
   | ethers.BrowserProvider

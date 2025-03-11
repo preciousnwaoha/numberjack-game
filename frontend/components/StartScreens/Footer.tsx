@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useGame } from "@/context/GameContext";
 
 const Footer: React.FC = () => {
-  const { roomData, connect, clientPlayerAddress, connected } = useGame();
+  const { connect, clientPlayerAddress, connected } = useGame();
 
 
 
