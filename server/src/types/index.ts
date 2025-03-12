@@ -6,28 +6,39 @@ export interface PlayerType {
   isActive: boolean;
   hasSkippedTurn: boolean;
   color: string;
+  claimed: boolean;
 }
 
 export type GameModeType = 'Rounds' | 'TimeBased';
 
-export interface RoomType {
-  creator: string; // address of creatoe
-  name: string;
-  id: number;
-  players: string[]; // Number of players expected when creating room
-  mode: GameModeType;
-  modeValue: number;
-  modeCurrentValue: number;
+export type GameStatusType = 'NotStarted' | 'InProgress' | 'Ended';
+
+export type ContractRoomTypeWithoutStatusAndMode = {
+  creator: string;
   maxNumber: number;
-  isActive: boolean;
-  status: 'NotStarted' | 'InProgress' | 'Ended';
-  started: boolean;
   entryFee: number;
+  players: string[];
+  isActive: boolean;
+  roundValue: number;
+  roundCurrentValue: number;
   startTime: number;
   duration: number;
   currentPlayerIndex: number;
   lastTurnTimestamp: number;
   turnTimeout: number;
+};
+
+export interface ContractRoomType extends ContractRoomTypeWithoutStatusAndMode {
+  id: number;
+  status: number;
+  mode: number;
+}
+
+export interface RoomType extends ContractRoomTypeWithoutStatusAndMode {
+  id: string;
+  name: string;
+  status: GameStatusType;
+  mode: GameModeType;
 }
 
 export interface GameType {
