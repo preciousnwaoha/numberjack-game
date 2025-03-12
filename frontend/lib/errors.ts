@@ -7,8 +7,10 @@ export const errors = {
 
     ERROR_CREATING_ROOM: "Error creating room",
     ERROR_JOINING_ROOM: "Error joining room",
+    ERROR_ENDING_GAME: "Error ending game",
     ERROR_STARTING_GAME: "Error starting game",
     ERROR_PLAYING_TURN: "Error playing turn",
+    ERROR_FORCING_TURN: "Error forcing turn",
     ERROR_CLAIMING: "Error claiming",
     ERROR_SKIPPING: "Error skipping",
 

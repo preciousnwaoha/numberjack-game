@@ -7,13 +7,15 @@ import Logo from "../ui/Logo";
 import { Card } from "../ui/card";
 
 const Lobby: React.FC = () => {
-  const { clientPlayerAddress, players, roomData, startGame } = useGame();
+  const { clientPlayerAddress, players, roomData, startGame, endGame } =
+    useGame();
 
   if (!roomData) {
     return null;
   }
 
-  const creatorIsClient = clientPlayerAddress.toLowerCase() === roomData.creator.toLowerCase();
+  const creatorIsClient =
+    clientPlayerAddress.toLowerCase() === roomData.creator.toLowerCase();
 
   return (
     <div className={""}>
@@ -23,6 +25,10 @@ const Lobby: React.FC = () => {
       </div>
 
       <div className="">
+        <Button variant="outline" onClick={() => endGame()}>
+          End Room
+        </Button>
+
         <Card>
           <h2>Waiting Room</h2>
           <p>{players.length} Players joined</p>

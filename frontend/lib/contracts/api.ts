@@ -14,6 +14,7 @@ import {
   CORE_CHAIN_ID,
   GAME_CONTRACT_ADDRESS,
   MIN_FEE,
+  TIME_TO_PLAY,
 } from "@/lib/constants";
 
 /**
@@ -160,14 +161,12 @@ export const createRoomApi = async ({
     const entryFeeWei = ethers.parseEther(newRoom.entryFee.toString());
     console.log(newRoom);
 
-    const tx = await contract[
-      "createGameRoom(uint256,uint8,uint256,uint256)"
-    ](
-      newRoom.maxNumber,
+    const tx = await contract["createGameRoom(uint256,uint8,uint256,uint256)"](
+      BigInt(newRoom.maxNumber),
       0,
-      newRoom.mode === "Rounds" ? 0 : 1,
-      newRoom.modeValue,
-      { value: entryFeeWei, gasLimit: 350000 }
+      BigInt(3),
+      BigInt(TIME_TO_PLAY),
+      { value: entryFeeWei, gasLimit: 1000000 }
     );
     await tx.wait();
     console.log("Room created successfully");
@@ -201,7 +200,10 @@ export const joinRoomApi = async ({
     const entryFee = roomRes.data.entryFee;
     const entryFeeWei = ethers.parseEther(MIN_FEE.toString());
     console.log(entryFee, entryFeeWei);
-    const tx = await contract.joinGameRoom(roomId, { value: entryFeeWei, gasLimit: 350000 });
+    const tx = await contract.joinGameRoom(roomId, {
+      value: entryFeeWei,
+      gasLimit: 350000,
+    });
     await tx.wait();
     console.log("Joined room successfully");
     return {
@@ -225,9 +227,7 @@ export const startGameApi = async ({
   roomId: number;
 }) => {
   try {
-    const tx = await contract[
-      "startGame(uint256)"
-    ](roomId);
+    const tx = await contract["startGame(uint256)"](roomId);
     await tx.wait();
     console.log("Game started successfully");
     return {
@@ -241,6 +241,28 @@ export const startGameApi = async ({
   }
 };
 
+export const endGameApi = async ({
+  contract,
+  roomId,
+}: {
+  contract: ethers.Contract;
+  roomId: number;
+}) => {
+  try {
+    const tx = await contract["endGame(uint256)"](roomId);
+    await tx.wait();
+    console.log("Game ended successfully");
+    return {
+      success: true,
+    };
+  } catch (_error) {
+    console.error("Error ending game", _error);
+    return {
+      error: errors.ERROR_ENDING_GAME,
+    };
+  }
+};
+
 // For rounds mode, drawCard corresponds to playing a turn.
 export const playTurnApi = async ({
   contract,
@@ -250,9 +272,7 @@ export const playTurnApi = async ({
   roomId: number;
 }) => {
   try {
-    const tx = await contract[
-      "playTurn(uint256)"
-    ](BigInt(roomId));
+    const tx = await contract["playTurn(uint256)"](BigInt(roomId));
     await tx.wait();
     // Use callStatic to get the draws if needed:
     //   const [draw1, draw2] = await contract.callStatic.playTurn(roomData.id);
@@ -260,7 +280,29 @@ export const playTurnApi = async ({
     console.log("Draws:", draw1.toString(), draw2.toString());
     return {
       success: true,
-      draws: [Number(draw1), Number(draw2)] ,
+      data: [Number(draw1), Number(draw2)],
+    };
+  } catch (error) {
+    console.error("Error playing turn:", error);
+    return {
+      error: errors.ERROR_PLAYING_TURN,
+    };
+  }
+};
+
+export const forceAdvanceApi = async ({
+  roomId,
+  contract,
+}: {
+  contract: ethers.Contract;
+  roomId: number;
+}) => {
+  try {
+    const tx = await contract.forceAdvance(roomId);
+    await tx.wait();
+
+    return {
+      success: true,
     };
   } catch (error) {
     console.error("Error playing turn:", error);
@@ -279,9 +321,7 @@ export const skipTurnApi = async ({
   roomId: number;
 }) => {
   try {
-    const tx = await contract[
-      "skipTurn(uint256)"
-    ](BigInt(roomId));  
+    const tx = await contract["skipTurn(uint256)"](BigInt(roomId));
     await tx.wait();
     console.log("Turn skipped successfully");
     return {
@@ -304,30 +344,30 @@ export const getAvailableRoomsApi = async ({
   try {
     const rooms = await contract.getAvailableRooms();
     const mappedRooms: RoomType[] = rooms.map(
-        (room: ContractRoomType, index: number): RoomType => ({
-          creator: room.creator,
-          name: "Room " + (index + 1),
-          id: Number(room.id).toString(),
-          players: [...room.players.map((addr: string) => addr.toLowerCase())],
-          mode: room.mode.toString() === "0" ? "Rounds" : "TimeBased",
-          roundValue: Number(room.roundValue),
-          roundCurrentValue: 1,
-          maxNumber: Number(room.maxNumber),
-          isActive: room.isActive,
-          status:
-            room.status.toString() === "0"
-              ? "NotStarted"
-              : room.status.toString() === "1"
-              ? "InProgress"
-              : "Ended",
-          entryFee: Number(room.entryFee),
-          startTime: Number(room.startTime),
-          duration: Number(room.duration),
-          currentPlayerIndex: Number(room.currentPlayerIndex),
-          lastTurnTimestamp: Number(room.lastTurnTimestamp),
-          turnTimeout: Number(room.turnTimeout),
-        })
-      );
+      (room: ContractRoomType, index: number): RoomType => ({
+        creator: room.creator,
+        name: "Room " + (index + 1),
+        id: Number(room.id).toString(),
+        players: [...room.players.map((addr: string) => addr.toLowerCase())],
+        mode: room.mode.toString() === "0" ? "Rounds" : "TimeBased",
+        roundValue: Number(room.roundValue),
+        roundCurrentValue: 1,
+        maxNumber: Number(room.maxNumber),
+        isActive: room.isActive,
+        status:
+          room.status.toString() === "0"
+            ? "NotStarted"
+            : room.status.toString() === "1"
+            ? "InProgress"
+            : "Ended",
+        entryFee: Number(room.entryFee),
+        startTime: Number(room.startTime),
+        duration: Number(room.duration),
+        currentPlayerIndex: Number(room.currentPlayerIndex),
+        lastTurnTimestamp: Number(room.lastTurnTimestamp),
+        turnTimeout: Number(room.turnTimeout),
+      })
+    );
     return {
       success: true,
       data: mappedRooms,
@@ -356,7 +396,9 @@ export const getPlayersApi = async ({
       };
     }
     const room = roomRes.data;
-    const playerAddresses: string[] = room.players.map((addr: string) => addr.toLowerCase());
+    const playerAddresses: string[] = room.players.map((addr: string) =>
+      addr.toLowerCase()
+    );
     const updatedPlayers = await Promise.all(
       playerAddresses.map(async (addr: string) => {
         const playerRes = await getRoomPlayerApi({
@@ -382,7 +424,6 @@ export const getPlayersApi = async ({
     };
   }
 };
-
 
 export const getRoomByIdApi = async ({
   roomId,
@@ -426,8 +467,7 @@ export const getRoomByIdApi = async ({
       error: errors.ERROR_FETCHING_ROOM,
     };
   }
-}
-
+};
 
 export const getRoomPlayerApi = async ({
   contract,
@@ -443,13 +483,13 @@ export const getRoomPlayerApi = async ({
       roomId,
       playerAddress
     );
-    
+
     const eliminated = await contract.getIsPlayerEliminatedByRoomId(
       roomId,
       playerAddress
     );
 
-    const mapedDraws = draws.map(draw => Number(draw));
+    const mapedDraws = draws.map((draw) => Number(draw));
     const total = mapedDraws.reduce((acc, curr) => acc + curr, 0);
 
     return {
@@ -471,7 +511,7 @@ export const getRoomPlayerApi = async ({
 
 export const getPlayerRoomApi = async ({
   playerAddress,
-  contract
+  contract,
 }: {
   playerAddress: string;
   contract: ethers.Contract;
@@ -481,37 +521,44 @@ export const getPlayerRoomApi = async ({
 
     console.log("getPlayerRoomApi: All rooms:", allRooms);
 
-    const allRoomsToRoomType: RoomType[] = allRooms.map((room: ContractRoomType) => ({
-      creator: room.creator,
-      name: "Room " + room.id,
-      id: Number(room.id).toString(),
-      players: room.players.map((addr: string) => addr.toLowerCase()),
-      mode: room.mode.toString() === "0" ? "Rounds" : "TimeBased",
-      roundValue: Number(room.roundValue),
-      roundCurrentValue: 1,
-      maxNumber: Number(room.maxNumber),
-      isActive: room.isActive,
-      status:
-        room.status.toString() === "0"
-          ? "NotStarted"
-          : room.status.toString() === "1"
-          ? "InProgress"
-          : "Ended",
-      entryFee: Number(room.entryFee),
-      startTime: Number(room.startTime),
-      duration: Number(room.duration),
-      currentPlayerIndex: Number(room.currentPlayerIndex),
-      lastTurnTimestamp: Number(room.lastTurnTimestamp),
-      turnTimeout: Number(room.turnTimeout),
-    }));
+    const allRoomsToRoomType: RoomType[] = allRooms.map(
+      (room: ContractRoomType) => ({
+        creator: room.creator,
+        name: "Room " + room.id,
+        id: Number(room.id).toString(),
+        players: room.players.map((addr: string) => addr.toLowerCase()),
+        mode: room.mode.toString() === "0" ? "Rounds" : "TimeBased",
+        roundValue: Number(room.roundValue),
+        roundCurrentValue: 1,
+        maxNumber: Number(room.maxNumber),
+        isActive: room.isActive,
+        status:
+          room.status.toString() === "0"
+            ? "NotStarted"
+            : room.status.toString() === "1"
+            ? "InProgress"
+            : "Ended",
+        entryFee: Number(room.entryFee),
+        startTime: Number(room.startTime),
+        duration: Number(room.duration),
+        currentPlayerIndex: Number(room.currentPlayerIndex),
+        lastTurnTimestamp: Number(room.lastTurnTimestamp),
+        turnTimeout: Number(room.turnTimeout),
+      })
+    );
 
     console.log("getPlayerRoomApi: All rooms to RoomType:", allRoomsToRoomType);
 
-    const playerRoom = allRoomsToRoomType.filter(r => r.status !== "Ended").find((room) =>{
-      console.log("getPlayerRoomApi: Player address:", playerAddress.toLowerCase());
-      console.log("getPlayerRoomApi: Room players:", room.players); 
-      return room.players.includes(playerAddress.toLowerCase())
-    });
+    const playerRoom = allRoomsToRoomType
+      .filter((r) => r.status !== "Ended")
+      .find((room) => {
+        console.log(
+          "getPlayerRoomApi: Player address:",
+          playerAddress.toLowerCase()
+        );
+        console.log("getPlayerRoomApi: Room players:", room.players);
+        return room.players.includes(playerAddress.toLowerCase());
+      });
 
     console.log("getPlayerRoomApi: Player room:", playerRoom);
 
@@ -541,11 +588,10 @@ export const getPlayerRoomApi = async ({
         players: playersRes.data,
       },
     };
-    
   } catch (error) {
     console.error("Error fetching player room:", error);
     return {
       error: errors.ERROR_FETCHING_PLAYERS,
     };
   }
-}
+};

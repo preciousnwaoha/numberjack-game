@@ -1,30 +1,21 @@
 "use client";
 
 import type React from "react";
-import Header from "../Header";
-import ThemeToggle from "../ThemeToggle";
-import AboutModal from "../AboutModal";
-import Scoreboard from "../Scoreboard";
-import PlayerCard from "./PlayerCard";
-import GameControls from "../GameControls";
-import NotificationBar from "../NotificationBar";
 import { useGame } from "@/context/GameContext";
-import { DUMMY_PLAYERS } from "@/lib/dummy";
 import Logo from "../ui/Logo";
-import { Card } from "../ui/card";
 import TextMainCard from "./TextMainCard";
 import ActivePlayers from "./ActivePlayers";
 import Leaderboard from "./Leaderboard";
 import RecentActivity from "./RecentActivity";
 import PlayerActionsCard from "./PlayerActionsCard";
 import GameProgress from "./GameProgress";
+import { Button } from "../ui/button";
 
 const GameBoard: React.FC = () => {
-  // const { gameRound, players } = useGame();
+  const { endGame, players } = useGame();
   const gameRound = 1;
   const maxRounds = 3;
   const maxNumber = 21;
-  const players = DUMMY_PLAYERS;
   const playersRemaining = players.filter((player) => player.isActive).length;
 
   return (
@@ -36,6 +27,8 @@ const GameBoard: React.FC = () => {
           <TextMainCard text="Round" main={`${gameRound}/${maxRounds}`} />
           <TextMainCard text="Max Number" main={maxNumber.toString()} />
         </div>
+
+        <Button variant="outline" onClick={() => endGame()}>End Game</Button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-12">

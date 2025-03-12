@@ -48,6 +48,17 @@ export interface GameType {
   winner: string;
 }
 
+export interface RecentActivity {
+  type: string;
+  text: string;
+  timestamp: number;
+}
+
+export interface Notification {
+  message: string;
+  type: 'success' | 'error' | 'info';
+}
+
 export type EthersProvider =
   | ethers.BrowserProvider
   | ethers.AbstractProvider

@@ -14,7 +14,7 @@ import CreateRoom from "./CreateRoom";
 type View = "enterGame" | "createRoom" | "joinRoom";
 
 const EnterGame: React.FC = () => {
-  const { roomData, } = useGame();
+  const { roomData, players} = useGame();
   const [view, setView] = useState<View>("enterGame");
 
   const handleChangeView = (view: View) => {
@@ -24,7 +24,7 @@ const EnterGame: React.FC = () => {
   console.log("roomData", roomData);
 
   if (roomData) {
-    if (roomData.status === "InProgress") {
+    if (roomData.status === "InProgress" && players.length > 1) {
       return <GameBoard />;
     }
     return <Lobby />;
@@ -54,6 +54,8 @@ const EnterGame: React.FC = () => {
         />
 
         <div>
+        
+
           <Button
             variant="outline"
             onClick={() => handleChangeView("createRoom")}

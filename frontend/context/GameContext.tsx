@@ -4,11 +4,13 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { ethers } from "ethers";
 
 import { errors } from "@/lib/errors";
-import { EthersProvider, PlayerType, RoomType } from "@/types";
+import { EthersProvider, PlayerType, RecentActivity, RoomType } from "@/types";
 import {
   connectWalletApi,
   createRoomApi,
   CreateRoomApiParams,
+  endGameApi,
+  forceAdvanceApi,
   getAvailableRoomsApi,
   getPlayerRoomApi,
   getPlayersApi,
@@ -20,7 +22,7 @@ import {
 import useSocket from "@/hooks/use-socket";
 import useContractEvents from "@/hooks/use-contractEvents";
 // import useNetwork from "@/hooks/use-network";
-import { getNextPlayerIndex, randomPlayerColor } from "@/lib/utils";
+import { randomPlayerColor } from "@/lib/utils";
 
 interface GameContextType {
   contract?: ethers.Contract;
@@ -32,8 +34,12 @@ interface GameContextType {
   availableRooms: RoomType[];
   roomData: RoomType | null;
   players: PlayerType[];
+  recentActivities: RecentActivity[];
+  notification: Notification | null;
   createRoom: (room: CreateRoomApiParams) => Promise<void>;
   joinRoom: (roomId: string) => Promise<void>;
+  forceAdvance: () => Promise<void>;
+  endGame: () => Promise<void>;
   startGame: () => Promise<void>;
   drawCard: () => Promise<void>;
   skipTurn: () => Promise<void>;
@@ -71,6 +77,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
   const [players, setPlayers] = useState<PlayerType[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState("");
+  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
+  const [notification, setNotification] = useState<Notification | null>(null);
+
 
   const { socketEmitter } = useSocket({
     setPlayers,
@@ -86,6 +95,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
     setRoomData,
     setAvailableRooms,
     setPlayers,
+    setRecentActivities,
     clientPlayerAddress,
     roomData,
     availableRooms,
@@ -98,12 +108,20 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
   // });
 
   useEffect(() => {
+    if (notification) {
+      setTimeout(() => {
+        setNotification(null);
+      }, 5000);
+    }
+  }, [notification])
+
+  useEffect(() => {
     const getPlayerAndRoomData = async () => {
       if (connected && contract && clientPlayerAddress) {
         console.log("Starting getPlayerRoomApi");
         const { error, data } = await getPlayerRoomApi({
           contract,
-          playerAddress: clientPlayerAddress,
+          playerAddress: clientPlayerAddress.toLowerCase(),
         });
 
         console.log("Checking Data: ", { error, data });
@@ -117,8 +135,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
           setRoomData(data.room);
           setPlayers((prev) => {
             return data.players.map((_player) => {
-              const playerInStore = prev.find((p) => p.address === _player.address);
-      
+              const playerInStore = prev.find(
+                (p) => p.address === _player.address
+              );
+
               if (playerInStore) {
                 return {
                   ...playerInStore,
@@ -146,7 +166,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
       connected,
       contract,
       clientPlayerAddress,
-    })
+    });
     if (connected && contract && clientPlayerAddress) {
       console.log("Connected, getting player and room data");
       getPlayerAndRoomData();
@@ -202,7 +222,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
       setError(errors.NO_CONTRACT_FOUND);
       return;
     }
-    const { error, data } = await joinRoomApi({
+    const { error } = await joinRoomApi({
       roomId: Number(roomId),
       contract,
     });
@@ -210,8 +230,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
       setError(error);
       return;
     }
-
-    
   };
 
   // Start the game by calling startGame on the contract.
@@ -261,7 +279,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
       return;
     }
 
-    const { draws, error } = await playTurnApi({
+    const { data, error } = await playTurnApi({
       roomId: Number(roomData.id),
       contract,
     });
@@ -271,15 +289,15 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
       return;
     }
 
-    if (draws) {
+    if (data) {
       // Update the player's draws and total score.
       setPlayers((prev) => {
         const updatedPlayers = prev.map((p) => {
-          if (p.address === clientPlayerAddress) {
+          if (p.address === clientPlayerAddress.toLowerCase()) {
             return {
               ...p,
-              draws: [...p.draws, ...draws],
-              total: p.total + draws[0] + draws[1],
+              draws: [...p.draws, ...data],
+              total: p.total + data[0] + data[1],
             };
           }
           return p;
@@ -292,7 +310,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
         prev
           ? {
               ...prev,
-              currentPlayerIndex: (prev.currentPlayerIndex + 1) % prev.players.length,
+              currentPlayerIndex:
+                (prev.currentPlayerIndex + 1) % prev.players.length,
             }
           : null
       );
@@ -300,13 +319,35 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
       // Emit the draw event to the socket.
       socketEmitter("playerDraw", {
         roomId: roomData.id,
-        playerAddress: clientPlayerAddress,
-        draws: draws,
+        playerAddress: clientPlayerAddress.toLowerCase(),
+        draws: data,
       });
     }
 
-    console.log("Draws:", draws);
+    console.log("Draws:", data);
   };
+
+  const forceAdvance = async () => {
+    if (!roomData) {
+      setError(errors.NO_GAME_ROOM_FOUND);
+      return;
+    }
+    if (!contract) {
+      setError(errors.NO_CONTRACT_FOUND);
+      return;
+    }
+
+    const {error} = await forceAdvanceApi({
+      roomId: Number(roomData.id),
+      contract,
+    });
+
+    if (error) {
+      setError(error);
+      return;
+    }
+
+  }
 
   // Skip the current turn.
   const skipTurn = async () => {
@@ -332,7 +373,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
     if (success) {
       setPlayers((prev) => {
         const updatedPlayers = prev.map((p) => {
-          if (p.address === clientPlayerAddress) {
+          if (p.address === clientPlayerAddress.toLowerCase()) {
             return {
               ...p,
               hasSkippedTurn: true,
@@ -348,14 +389,15 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
         prev
           ? {
               ...prev,
-              currentPlayerIndex: (prev.currentPlayerIndex + 1) % prev.players.length,
+              currentPlayerIndex:
+                (prev.currentPlayerIndex + 1) % prev.players.length,
             }
           : null
       );
 
       socketEmitter("playerSkipped", {
         roomId: roomData.id,
-        playerAddress: clientPlayerAddress,
+        playerAddress: clientPlayerAddress.toLowerCase(),
       });
     }
   };
@@ -429,6 +471,32 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
     });
   };
 
+  const endGame = async () => {
+    if (!roomData) {
+      setError(errors.NO_GAME_ROOM_FOUND);
+      return;
+    }
+    if (!contract) {
+      setError(errors.NO_CONTRACT_FOUND);
+      return;
+    }
+
+    const { error, success } = await endGameApi({
+      roomId: Number(roomData.id),
+      contract,
+    });
+
+    if (error) {
+      setError(error);
+      return;
+    }
+
+    if (success) {
+      setPlayers([])
+      setRoomData(null);
+    }
+  };
+
   const value: GameContextType = {
     contract,
     provider,
@@ -441,10 +509,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
     availableRooms,
     roomData,
     players,
+    recentActivities,
+    notification,
     createRoom,
     joinRoom,
+    endGame,
     startGame,
     drawCard,
+    forceAdvance,
     skipTurn,
     getAvailableRooms,
     getPlayers,

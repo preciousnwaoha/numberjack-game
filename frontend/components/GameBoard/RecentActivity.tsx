@@ -1,13 +1,13 @@
 import React from "react";
 import { Card } from "../ui/card";
-import { DUMMY_RECENT_ACTIVITIES } from "@/lib/dummy";
 import { BsSkipForwardCircleFill } from "react-icons/bs";
 import { ImDice } from "react-icons/im";
 import { RiMoneyDollarCircleFill } from "react-icons/ri";
 import { AiFillCloseCircle } from "react-icons/ai";
+import { useGame } from "@/context/GameContext";
 
 const RecentActivity = () => {
-  const recents = DUMMY_RECENT_ACTIVITIES;
+  const {recentActivities} = useGame()
 
   return (
     <Card className={"flex flex-col gap-3 px-4 py-2"}>
@@ -15,11 +15,11 @@ const RecentActivity = () => {
         Recent Activity</h4>
 
       <ul>
-        {recents.map((activity, index) => {
+        {recentActivities.map((activity, index) => {
           const icon =
             activity.type === "skip" ? (
               <BsSkipForwardCircleFill />
-            ) : activity.type === "draw" ? (
+            ) : activity.type === "turn" ? (
               <ImDice />
             ) : activity.type === "bust" ? (
               <AiFillCloseCircle />

@@ -1,11 +1,10 @@
 import {
   getPlayersApi,
-  getRoomByIdApi,
-  getRoomPlayerApi,
+  getRoomByIdApi
 } from "@/lib/contracts/api";
 import { playerFromContractToPlayerType } from "@/lib/utils";
 
-import { GameModeType, GameStatusType, PlayerType, RoomType } from "@/types";
+import { GameModeType, GameStatusType, PlayerType, RecentActivity, RoomType } from "@/types";
 import type { Contract } from "ethers";
 import { useEffect } from "react";
 
@@ -15,6 +14,7 @@ interface UseContractEventsProps {
   setRoomData: React.Dispatch<React.SetStateAction<RoomType | null>>;
   setAvailableRooms: React.Dispatch<React.SetStateAction<RoomType[]>>;
   setPlayers: React.Dispatch<React.SetStateAction<PlayerType[]>>;
+  setRecentActivities: React.Dispatch<React.SetStateAction<RecentActivity[]>>
   clientPlayerAddress: string;
   roomData: RoomType | null;
   availableRooms: RoomType[];
@@ -26,6 +26,7 @@ const useContractEvents = ({
   setRoomData,
   setAvailableRooms,
   setPlayers,
+  setRecentActivities,
   clientPlayerAddress,
   roomData,
   availableRooms,
@@ -35,37 +36,50 @@ const useContractEvents = ({
     if (!contract) return;
     // Define contract event handlers
     const handleGameRoomCreated = (...args: unknown[]) => {
-      console.log("Game Room Created:", args);
+      const roomId = Number(args[0]).toString();
+      const creatorAddress = (args[1] as string).toLowerCase() as string;
+      const maxNumber = Number(args[2]);
+      const entryFee = Number(args[3]);
+      console.log("Game Room Created:", { roomId, creatorAddress, maxNumber, entryFee });
       const newRoom = {
-        creator: args[1] as string,
+        creator: creatorAddress,
         name: "Some Room Name",
-        id: Number(args[0]).toString(),
+        id: roomId,
         players: [clientPlayerAddress],
         mode: "Rounds" as GameModeType,
         roundValue: 3, // TODO: Emit modevalue with mode
         roundCurrentValue: 1,
-        maxNumber: Number(args[2]),
+        maxNumber: maxNumber,
         isActive: true,
         status: "NotStarted" as GameStatusType,
-        entryFee: Number(args[3]),
-        startTime: 0,
+        entryFee: entryFee,
+        startTime: new Date().getTime(), // TODO: Emit start time
         duration: 0,
         currentPlayerIndex: 0,
         lastTurnTimestamp: 0,
         turnTimeout: 0,
       };
-      if (clientPlayerAddress === args[1]) {
+      if (clientPlayerAddress.toLowerCase() === creatorAddress) {
         setRoomData(newRoom);
+        setRecentActivities((prev) => [
+          ...prev,
+          {
+            type: "create",
+            text: `Room created successfully!`,
+            timestamp: new Date().getTime(),
+          },
+        ]);
       } else {
         setAvailableRooms((prev) => [...prev, newRoom]);
       }
+      
       socketEmitter("createRoom", newRoom);
     };
 
     const handlePlayerJoined = async (...args: unknown[]) => {
       const roomId = Number(args[0]).toString();
-      const playerAddress = args[1] as string;
-      if (roomData && roomData.id === roomId) {
+      const playerAddress = (args[1] as string).toLowerCase();
+      if ((roomData && roomData.id === roomId) || (clientPlayerAddress.toLowerCase() === playerAddress)) {
         const { data: playersData } = await getPlayersApi({
           roomId: Number(roomId),
           contract,
@@ -84,7 +98,14 @@ const useContractEvents = ({
         if (!data) return;
         setPlayers(newPlayers);
         setRoomData(data);
-
+        setRecentActivities((prev) => [
+          ...prev,
+          {
+            type: "join",
+            text: `${playerAddress} joined the room`,
+            timestamp: new Date().getTime(),
+          },
+        ]);
         socketEmitter("joinRoom", { roomId, player: newPlayers.find((p) => p.address === playerAddress) }); 
       } else if (!roomData) {
         // client is not in any room
@@ -116,6 +137,14 @@ const useContractEvents = ({
               }
             : null
         );
+        setRecentActivities((prev) => [
+          ...prev,
+          {
+            type: "leave",
+            text: `${playerAddress} left the room`,
+            timestamp: new Date().getTime(),
+          },
+        ]);
       } else if (!roomData) {
         setAvailableRooms((prev) =>
           prev.map((room) =>
@@ -155,6 +184,15 @@ const useContractEvents = ({
             return player
           }
         }))
+
+        setRecentActivities(prev => [
+          ...prev,
+          {
+            type: "skip",
+            text: `${playerAddress} skipped their turn`,
+            timestamp: new Date().getTime(),
+          },
+        ]);
       }
       
     };
@@ -167,7 +205,14 @@ const useContractEvents = ({
           ...prev,
           currentPlayerIndex: prev.players.findIndex(addr => addr === playerAddress),
         } : null)
-
+        setRecentActivities(prev => [
+          ...prev,
+          {
+            type: "turn",
+            text: `${playerAddress} advanced their turn`,
+            timestamp: new Date().getTime(),
+          },
+        ]);
         console.log("Event: Turn Advanced:", args);
       }
     }
@@ -175,7 +220,7 @@ const useContractEvents = ({
 
     const handlePlayerEliminated = (...args: unknown[]) => { // TODO: Why cant we get player {draws, totoal, address, isActive}
       const roomId = Number(args[0]).toString() as string;
-      const playerAddress = args[1] as string;
+      const playerAddress = (args[1] as string).toLowerCase();
       if (roomData?.id === roomId) {
         setPlayers(prev => prev.map(player => {
           if (player.address === playerAddress) {
@@ -187,28 +232,42 @@ const useContractEvents = ({
             return player
           }
         }))
-
+        setRecentActivities(prev => [
+          ...prev,
+          {
+            type: "bust",
+            text: `${playerAddress} was eliminated`,
+            timestamp: new Date().getTime(),
+          },
+        ]);
         console.log("Event: Player Eliminated:", args);
       }
     }
 
     const handleWinnerDeclared = (...args: unknown[]) => { // TODO: Why cant we get winner for a game
       const roomId = Number(args[0]).toString() as string;
-      const winnerAddress = args[1] as string;
+      const winnerAddress = (args[1] as string).toLowerCase();
       if (roomData?.id === roomId) {
         setRoomData(prev => prev ? {
           ...prev,
           status: "Ended",
           winner: winnerAddress
         } : null)
-
+        setRecentActivities(prev => [
+          ...prev,
+          {
+            type: "winner",
+            text: `${winnerAddress} won the game`,
+            timestamp: new Date().getTime(),
+          },
+        ]);
         console.log("Event: Winner Declared:", args);
       }
     }
 
     const handleTurnTimeout = (...args: unknown[]) => {
       const roomId = Number(args[0]).toString() as string;
-      // const playerAddress = args[1] as string;
+      // const playerAddress = (args[1] as string).toLowerCase();
       if (roomData?.id === roomId) {
         console.log("Event: Turn Timeout:", args );
       }
@@ -217,11 +276,11 @@ const useContractEvents = ({
     // Listen for events from the contract
     contract.on("GameRoomCreated", handleGameRoomCreated);
     contract.on("PlayerJoined", handlePlayerJoined);
-    // contract.on("PlayerLeft", handlePlayerLeft);
+    // TODO: contract.on("PlayerLeft", handlePlayerLeft);
     contract.on("GameStarted", handleGameStarted);
     contract.on("PlayerPlayed", handleTurnPlayed);
     contract.on("TurnSkipped", handleTurnSkipped);
-    contract.on("TurnTimeout", handleTurnTimeout);
+    contract.on("TurnTimedOut", handleTurnTimeout);
     contract.on("TurnAdvanced", handleTurnAdvanced);
     contract.on("PlayerEliminated", handlePlayerEliminated);
     contract.on("WinnerDeclared", handleWinnerDeclared);
@@ -234,7 +293,7 @@ const useContractEvents = ({
         contract.removeListener("GameStarted", handleGameStarted);
         contract.removeListener("PlayerPlayed", handleTurnPlayed);
         contract.removeListener("TurnSkipped", handleTurnSkipped);
-        // contract.removeListener("TurnTimeout", handleTurnTimeout);
+        contract.removeListener("TurnTimedOut", handleTurnTimeout);
         contract.removeListener("TurnAdvanced", handleTurnAdvanced);
         contract.removeListener("PlayerEliminated", handlePlayerEliminated);
         contract.removeListener("WinnerDeclared", handleWinnerDeclared);
