@@ -14,7 +14,7 @@ interface RoomSettingsInputProps {
 const RoomSettingsInput = ({
   label,
   value,
-  defaultVal,
+  // defaultVal,
   setValue,
   max,
   min,

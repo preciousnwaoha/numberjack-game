@@ -4,12 +4,15 @@ import { useMemo } from "react";
 import { useGame } from "@/context/GameContext";
 
 const ActivePlayers = () => {
-  const {players} = useGame();
-  const currentPlayerIndex = 0;
+  const {players, roomData} = useGame();
+  
 
   const seed = useMemo(() => Math.random().toString(36).substring(2, 10), []);
   const avatarUrl = `https://api.dicebear.com/9.x/pixel-art/svg?seed=${seed}`;
 
+
+  if (!roomData) return null;
+  const currentPlayerIndex = roomData.currentPlayerIndex;
   return (
     <Card className={"flex flex-col gap-3 px-4 py-2"}>
       <h4 className={"text-lg font-bold"}>Active Players</h4>

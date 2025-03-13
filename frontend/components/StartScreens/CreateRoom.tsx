@@ -3,10 +3,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useGame } from "@/context/GameContext";
-import { Select } from "../ui/select";
-import { SelectItem } from "@radix-ui/react-select";
 import { GameModeType } from "@/types";
 import { MIN_FEE } from "@/lib/constants";
 import { GoArrowLeft } from "react-icons/go";
@@ -20,7 +17,6 @@ interface CreateRoomProps {
 
 const CreateRoom: React.FC<CreateRoomProps> = ({ onBack }) => {
   const { createRoom, error } = useGame();
-  const [roomName, setRoomName] = useState("Some Name");
   const [players, setPlayers] = useState(2);
   const [maxNumber, setMaxNumber] = useState(21);
   const [mode, setMode] = useState<GameModeType>("Rounds");
@@ -28,7 +24,7 @@ const CreateRoom: React.FC<CreateRoomProps> = ({ onBack }) => {
   const [fee, setFee] = useState(MIN_FEE);
 
   const handleCreateRoom = () => {
-    if (!roomName || !players || !maxNumber) {
+    if (!players || !maxNumber) {
       return;
     }
 

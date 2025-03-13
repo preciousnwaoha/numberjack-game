@@ -12,10 +12,14 @@ import GameProgress from "./GameProgress";
 import { Button } from "../ui/button";
 
 const GameBoard: React.FC = () => {
-  const { endGame, players } = useGame();
-  const gameRound = 1;
-  const maxRounds = 3;
-  const maxNumber = 21;
+  const { endGame, players, roomData } = useGame();
+
+  if (!roomData) return null;
+
+
+  const gameRound = roomData.roundCurrentValue;
+  const maxRounds = roomData.roundValue;
+  const maxNumber = roomData.maxNumber;
   const playersRemaining = players.filter((player) => player.isActive).length;
 
   return (
