@@ -1,10 +1,10 @@
-import { DUMMY_PLAYERS } from "@/lib/dummy";
 import React, { useMemo } from "react";
 import { Card } from "../ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { useGame } from "@/context/GameContext";
 
 const Leaderboard = () => {
-  const players = DUMMY_PLAYERS;
+  const {players} = useGame();
   const currentPlayerIndex = 0;
 
   const seed = useMemo(() => Math.random().toString(36).substring(2, 10), []);

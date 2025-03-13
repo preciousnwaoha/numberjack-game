@@ -77,9 +77,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
   const [players, setPlayers] = useState<PlayerType[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState("");
-  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
+  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>(
+    []
+  );
   const [notification, setNotification] = useState<Notification | null>(null);
-
 
   const { socketEmitter } = useSocket({
     setPlayers,
@@ -113,7 +114,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
         setNotification(null);
       }, 5000);
     }
-  }, [notification])
+  }, [notification]);
 
   useEffect(() => {
     const getPlayerAndRoomData = async () => {
@@ -158,6 +159,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
               }
             });
           });
+
+          
         }
       }
     };
@@ -243,7 +246,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
       return;
     }
 
-    const { error, success } = await startGameApi({
+    const { error } = await startGameApi({
       roomId: Number(roomData.id),
       contract,
     });
@@ -251,20 +254,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
     if (error) {
       setError(error);
       return;
-    }
-
-    if (success) {
-      const startTime = Date.now();
-      setRoomData((prev) =>
-        prev
-          ? {
-              ...prev,
-              startTime,
-              status: "InProgress",
-            }
-          : null
-      );
-      socketEmitter("startGame", { roomId: roomData.id, startTime });
     }
   };
 
@@ -305,16 +294,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
 
         return updatedPlayers;
       });
-      // Update the current player index.
-      setRoomData((prev) =>
-        prev
-          ? {
-              ...prev,
-              currentPlayerIndex:
-                (prev.currentPlayerIndex + 1) % prev.players.length,
-            }
-          : null
-      );
 
       // Emit the draw event to the socket.
       socketEmitter("playerDraw", {
@@ -323,8 +302,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
         draws: data,
       });
     }
-
-    console.log("Draws:", data);
   };
 
   const forceAdvance = async () => {
@@ -337,7 +314,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
       return;
     }
 
-    const {error} = await forceAdvanceApi({
+    const { error } = await forceAdvanceApi({
       roomId: Number(roomData.id),
       contract,
     });
@@ -346,8 +323,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
       setError(error);
       return;
     }
-
-  }
+  };
 
   // Skip the current turn.
   const skipTurn = async () => {
@@ -385,17 +361,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
         return updatedPlayers;
       });
 
-      setRoomData((prev) =>
-        prev
-          ? {
-              ...prev,
-              currentPlayerIndex:
-                (prev.currentPlayerIndex + 1) % prev.players.length,
-            }
-          : null
-      );
-
-      socketEmitter("playerSkipped", {
+      socketEmitter("playerSkip", {
         roomId: roomData.id,
         playerAddress: clientPlayerAddress.toLowerCase(),
       });
@@ -492,7 +458,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     if (success) {
-      setPlayers([])
+      setPlayers([]);
       setRoomData(null);
     }
   };

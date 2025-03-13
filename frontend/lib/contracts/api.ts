@@ -520,6 +520,7 @@ export const getPlayerRoomApi = async ({
     const allRooms = await contract.getAllGameRooms();
 
     console.log("getPlayerRoomApi: All rooms:", allRooms);
+    
 
     const allRoomsToRoomType: RoomType[] = allRooms.map(
       (room: ContractRoomType) => ({
@@ -533,9 +534,9 @@ export const getPlayerRoomApi = async ({
         maxNumber: Number(room.maxNumber),
         isActive: room.isActive,
         status:
-          room.status.toString() === "0"
+          Number(room.status).toString() === "0"
             ? "NotStarted"
-            : room.status.toString() === "1"
+            : Number(room.status).toString() === "1"
             ? "InProgress"
             : "Ended",
         entryFee: Number(room.entryFee),

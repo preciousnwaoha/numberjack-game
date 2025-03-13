@@ -29,18 +29,20 @@ const useSocket = ({
     socketService.on(
       "playerJoined",
       (data: { roomId: string; player: string }) => {
-        console.log("🏠 Scocket Player Joined Room:", data);
+        if (roomData?.id === data.roomId) {
+          console.log("🏠 Scocket Player Joined Room:", data);
+        }
       }
     );
     socketService.on(
       "playerLeft",
       (data: { roomId: string; playerAddress: string }) => {
         const { roomId, playerAddress } = data;
-        console.log("🏠 Player Joined Room:", roomId);
         if (roomData?.id === roomId) {
+          console.log("🏠 Player Joined Room:", roomId);
           setPlayers((prev) => prev.filter((p) => p.address !== playerAddress));
           setRoomData((prev) =>
-            prev 
+            prev
               ? {
                   ...prev,
                   players: roomData.players.filter((p) => p !== playerAddress),
@@ -61,44 +63,34 @@ const useSocket = ({
         }
       }
     );
-    socketService.on("gameStarted", (data: { roomId: string; startTime: number }) => {
-      const { roomId } = data;
-      console.log("🚀 Socket Game Started!", roomId);
-      if (roomData) {
-        setRoomData((prev) =>
-          prev
-            ? {
-                ...prev,
-                startTime: data.startTime,
-                status: "InProgress",
-              }
-            : null
-        );
+    socketService.on(
+      "gameStarted",
+      (data: { roomId: string; startTime: number }) => {
+        const { roomId } = data;
+        if (roomData && roomData.id === roomId) {
+          console.log("🚀 Socket Game Started!", roomId);
+        }
       }
-    });
+    );
     socketService.on(
       "turnAdvanced",
-      (data: { roomId: string; playerAddress: string}) => {
+      (data: { roomId: string; playerAddress: string }) => {
         const { roomId, playerAddress } = data;
-        console.log(`🎮 Socket Player ${playerAddress} advanced turn`);
         if (roomData?.id === roomId) {
-          setRoomData((prev) =>
-            prev
-              ? {
-                  ...prev,
-                  currentPlayerIndex: (prev.currentPlayerIndex + 1) % prev.players.length,
-                }
-              : null
-          );
+          console.log(`🎮 Socket Player ${playerAddress} advanced turn`);
         }
       }
     );
     socketService.on(
       "playerDrew",
-      (data: { roomId: string; playerAddress: string; draws: [number, number] }) => {
+      (data: {
+        roomId: string;
+        playerAddress: string;
+        draws: [number, number];
+      }) => {
         const { roomId, playerAddress, draws } = data;
-        console.log(`🎮 Socket Player ${playerAddress} drew:`, draws);
         if (roomData?.id === roomId) {
+          console.log(`🎮 Socket Player ${playerAddress} drew:`, draws);
           setPlayers((prev) => {
             const updatedPlayers = prev.map((p) => {
               if (p.address === playerAddress) {
@@ -120,8 +112,8 @@ const useSocket = ({
       "playerSkipped",
       (data: { roomId: string; playerAddress: string }) => {
         const { roomId, playerAddress } = data;
-        console.log(`🎮 Scoket Player ${playerAddress}`);
         if (roomData?.id === roomId) {
+          console.log(`🎮 Scoket Player ${playerAddress} skipped turn`);
           setPlayers((prev) => {
             const updatedPlayers = prev.map((p) => {
               if (p.address === playerAddress) {
@@ -141,22 +133,8 @@ const useSocket = ({
     socketService.on(
       "playerOut",
       (data: { roomId: string; player: string }) => {
-        const { roomId, player } = data;
-        console.log(`🎮 Socket Player ${player}`);
-        if (roomData?.id === roomId) {
-          setPlayers((prev) => {
-            const updatedPlayers = prev.map((p) => {
-              if (p.address === player) {
-                return {
-                  ...p,
-                  isActive: false,
-                };
-              }
-              return p;
-            });
-
-            return updatedPlayers;
-          });
+        if (roomData?.id === data.roomId) {
+          console.log(`🎮 Socket Player ${data.player} lost`);
         }
       }
     );
@@ -164,22 +142,8 @@ const useSocket = ({
       "playerWon",
       (data: { roomId: string; player: string }) => {
         const { roomId, player } = data;
-        console.log(`🎮 Socket Player ${player}`);
         if (roomData?.id === roomId) {
-          setPlayers((prev) => {
-            const updatedPlayers = prev.map((p) => {
-              if (p.address === player) {
-                return {
-                  ...p,
-                  isActive: false,
-                };
-              }
-              return p;
-            });
-
-            return updatedPlayers;
-          });
-          setRoomData((prev) => (prev ? { ...prev, status: "Ended" } : null));
+          console.log(`🎮 Socket Player ${player} won`);
         }
       }
     );
@@ -187,31 +151,16 @@ const useSocket = ({
       "playerClaimed",
       (data: { roomId: string; player: string }) => {
         const { roomId, player } = data;
-        console.log(`🎮 Socket Player ${player} claimed`);
-        if (roomData?.id === roomId) {
-          setPlayers((prev) => {
-            const updatedPlayers = prev.map((p) => {
-              if (p.address === player) {
-                return {
-                  ...p,
-                  claimed: true,
-                };
-              }
-              return p;
-            });
 
-            return updatedPlayers;
-          });
+        if (roomData?.id === roomId) {
+          console.log(`🎮 Socket Player ${player} claimed`);
         }
       }
     );
     socketService.on("roomClosed", (roomId: string) => {
-      console.log("🚀 Game Created!", roomId);
-
-      if (roomData?.status === "NotStarted")
-        setAvailableRooms((prev) =>
-          prev.filter((room) => room.id !== roomId)
-        );
+      if (roomData?.id === roomId) {
+        console.log("🚀 Game Created!", roomId);
+      }
     });
 
     return () => {

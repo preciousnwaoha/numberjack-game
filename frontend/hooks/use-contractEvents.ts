@@ -1,10 +1,13 @@
-import {
-  getPlayersApi,
-  getRoomByIdApi
-} from "@/lib/contracts/api";
+import { getPlayersApi, getRoomByIdApi } from "@/lib/contracts/api";
 import { playerFromContractToPlayerType } from "@/lib/utils";
 
-import { GameModeType, GameStatusType, PlayerType, RecentActivity, RoomType } from "@/types";
+import {
+  GameModeType,
+  GameStatusType,
+  PlayerType,
+  RecentActivity,
+  RoomType,
+} from "@/types";
 import type { Contract } from "ethers";
 import { useEffect } from "react";
 
@@ -14,14 +17,14 @@ interface UseContractEventsProps {
   setRoomData: React.Dispatch<React.SetStateAction<RoomType | null>>;
   setAvailableRooms: React.Dispatch<React.SetStateAction<RoomType[]>>;
   setPlayers: React.Dispatch<React.SetStateAction<PlayerType[]>>;
-  setRecentActivities: React.Dispatch<React.SetStateAction<RecentActivity[]>>
+  setRecentActivities: React.Dispatch<React.SetStateAction<RecentActivity[]>>;
   clientPlayerAddress: string;
   roomData: RoomType | null;
   availableRooms: RoomType[];
 }
 
 const useContractEvents = ({
-  socketEmitter,
+  // socketEmitter,
   contract,
   setRoomData,
   setAvailableRooms,
@@ -40,7 +43,12 @@ const useContractEvents = ({
       const creatorAddress = (args[1] as string).toLowerCase() as string;
       const maxNumber = Number(args[2]);
       const entryFee = Number(args[3]);
-      console.log("Game Room Created:", { roomId, creatorAddress, maxNumber, entryFee });
+      console.log("Game Room Created:", {
+        roomId,
+        creatorAddress,
+        maxNumber,
+        entryFee,
+      });
       const newRoom = {
         creator: creatorAddress,
         name: "Some Room Name",
@@ -72,14 +80,15 @@ const useContractEvents = ({
       } else {
         setAvailableRooms((prev) => [...prev, newRoom]);
       }
-      
-      socketEmitter("createRoom", newRoom);
     };
 
     const handlePlayerJoined = async (...args: unknown[]) => {
       const roomId = Number(args[0]).toString();
       const playerAddress = (args[1] as string).toLowerCase();
-      if ((roomData && roomData.id === roomId) || (clientPlayerAddress.toLowerCase() === playerAddress)) {
+      if (
+        (roomData && roomData.id === roomId) ||
+        clientPlayerAddress.toLowerCase() === playerAddress
+      ) {
         const { data: playersData } = await getPlayersApi({
           roomId: Number(roomId),
           contract,
@@ -106,7 +115,6 @@ const useContractEvents = ({
             timestamp: new Date().getTime(),
           },
         ]);
-        socketEmitter("joinRoom", { roomId, player: newPlayers.find((p) => p.address === playerAddress) }); 
       } else if (!roomData) {
         // client is not in any room
         const room = availableRooms.find((room) => room.id === roomId);
@@ -124,68 +132,77 @@ const useContractEvents = ({
       console.log("Event: Game Room Joined:", roomId, playerAddress);
     };
 
-    const handlePlayerLeft = (...args: unknown[]) => { // TOD0: Emit the player who left
+    // const handlePlayerLeft = (...args: unknown[]) => {
+    //   // TOD0: Emit the player who left
+    //   const roomId = Number(args[0]).toString();
+    //   const playerAddress = args[1] as string;
+    //   if (roomData?.id === roomId) {
+    //     setPlayers((prev) => prev.filter((p) => p.address !== playerAddress));
+    //     setRoomData((prev) =>
+    //       prev
+    //         ? {
+    //             ...prev,
+    //             players: roomData.players.filter((p) => p !== playerAddress),
+    //           }
+    //         : null
+    //     );
+    //     setRecentActivities((prev) => [
+    //       ...prev,
+    //       {
+    //         type: "leave",
+    //         text: `${playerAddress} left the room`,
+    //         timestamp: new Date().getTime(),
+    //       },
+    //     ]);
+    //   } else if (!roomData) {
+    //     setAvailableRooms((prev) =>
+    //       prev.map((room) =>
+    //         room.id === roomId
+    //           ? {
+    //               ...room,
+    //               players: room.players.filter((p) => p !== playerAddress),
+    //             }
+    //           : room
+    //       )
+    //     );
+    //   }
+
+    //   console.log("Event: Player Left:", args);
+    // };
+
+    const handleGameStarted = (...args: unknown[]) => {
+      // TODO: Emit Time started
       const roomId = Number(args[0]).toString();
-      const playerAddress = args[1] as string;
       if (roomData?.id === roomId) {
-        setPlayers((prev) => prev.filter((p) => p.address !== playerAddress));
+        const startTime = Date.now();
         setRoomData((prev) =>
           prev
             ? {
                 ...prev,
-                players: roomData.players.filter((p) => p !== playerAddress),
+                startTime,
+                status: "InProgress",
               }
             : null
         );
-        setRecentActivities((prev) => [
-          ...prev,
-          {
-            type: "leave",
-            text: `${playerAddress} left the room`,
-            timestamp: new Date().getTime(),
-          },
-        ]);
-      } else if (!roomData) {
-        setAvailableRooms((prev) =>
-          prev.map((room) =>
-            room.id === roomId
-              ? {
-                  ...room,
-                  players: room.players.filter((p) => p !== playerAddress),
-                }
-              : room
-          )
-        );
+
+        console.log("Event: Game Started:", args);
       }
-
-      console.log("Event: Player Left:", args);
-    }
-
-    const handleGameStarted = (...args: unknown[]) => { // TODO: Emit Time started
-      console.log("Event: Game Started:", args);
     };
 
-    const handleTurnPlayed = (...args: unknown[]) => { // TODO: Emit the Draws
-      console.log("Event: Turn Played:", args);
+    const handleTurnPlayed = (...args: unknown[]) => {
+      // TODO: Emit the Draws
+      const roomId = Number(args[0]).toString();
+      if (roomData?.id === roomId) {
+        console.log("Event: Turn Played:", args);
+      }
     };
 
     const handleTurnSkipped = (...args: unknown[]) => {
-      const roomId = args[0]
-      const playerAddress = (args[1] as string).toLowerCase()
-      console.log("Turn Skipped:", args);
+      const roomId = args[0];
+      const playerAddress = (args[1] as string).toLowerCase();
       if (roomData?.id === roomId) {
-        setPlayers(prev => prev.map(player => {
-          if (playerAddress === player.address) {
-            return {
-              ...player,
-              hasSkippedTurn: true
-            }
-          } else {
-            return player
-          }
-        }))
-
-        setRecentActivities(prev => [
+        console.log("Turn Skipped:", args);
+        setRecentActivities((prev) => [
           ...prev,
           {
             type: "skip",
@@ -194,18 +211,23 @@ const useContractEvents = ({
           },
         ]);
       }
-      
     };
 
     const handleTurnAdvanced = (...args: unknown[]) => {
-      const roomId = args[0]
-      const playerAddress = (args[1] as string).toLowerCase()
+      const roomId = args[0];
+      const playerAddress = (args[1] as string).toLowerCase();
       if (roomData?.id === roomId) {
-        setRoomData(prev => prev ? {
-          ...prev,
-          currentPlayerIndex: prev.players.findIndex(addr => addr === playerAddress),
-        } : null)
-        setRecentActivities(prev => [
+        setRoomData((prev) =>
+          prev
+            ? {
+                ...prev,
+                currentPlayerIndex: prev.players.findIndex(
+                  (addr) => addr === playerAddress
+                ),
+              }
+            : null
+        );
+        setRecentActivities((prev) => [
           ...prev,
           {
             type: "turn",
@@ -215,24 +237,26 @@ const useContractEvents = ({
         ]);
         console.log("Event: Turn Advanced:", args);
       }
-    }
+    };
 
-
-    const handlePlayerEliminated = (...args: unknown[]) => { // TODO: Why cant we get player {draws, totoal, address, isActive}
+    const handlePlayerEliminated = (...args: unknown[]) => {
+      // TODO: Why cant we get player {draws, totoal, address, isActive}
       const roomId = Number(args[0]).toString() as string;
       const playerAddress = (args[1] as string).toLowerCase();
       if (roomData?.id === roomId) {
-        setPlayers(prev => prev.map(player => {
-          if (player.address === playerAddress) {
-            return {
-              ...player,
-              isActive: false
+        setPlayers((prev) =>
+          prev.map((player) => {
+            if (player.address === playerAddress) {
+              return {
+                ...player,
+                isActive: false,
+              };
+            } else {
+              return player;
             }
-          } else {
-            return player
-          }
-        }))
-        setRecentActivities(prev => [
+          })
+        );
+        setRecentActivities((prev) => [
           ...prev,
           {
             type: "bust",
@@ -242,18 +266,23 @@ const useContractEvents = ({
         ]);
         console.log("Event: Player Eliminated:", args);
       }
-    }
+    };
 
-    const handleWinnerDeclared = (...args: unknown[]) => { // TODO: Why cant we get winner for a game
+    const handleWinnerDeclared = (...args: unknown[]) => {
+      // TODO: Why cant we get winner for a game
       const roomId = Number(args[0]).toString() as string;
       const winnerAddress = (args[1] as string).toLowerCase();
       if (roomData?.id === roomId) {
-        setRoomData(prev => prev ? {
-          ...prev,
-          status: "Ended",
-          winner: winnerAddress
-        } : null)
-        setRecentActivities(prev => [
+        setRoomData((prev) =>
+          prev
+            ? {
+                ...prev,
+                status: "Ended",
+                winner: winnerAddress,
+              }
+            : null
+        );
+        setRecentActivities((prev) => [
           ...prev,
           {
             type: "winner",
@@ -263,15 +292,15 @@ const useContractEvents = ({
         ]);
         console.log("Event: Winner Declared:", args);
       }
-    }
+    };
 
     const handleTurnTimeout = (...args: unknown[]) => {
       const roomId = Number(args[0]).toString() as string;
       // const playerAddress = (args[1] as string).toLowerCase();
       if (roomData?.id === roomId) {
-        console.log("Event: Turn Timeout:", args );
+        console.log("Event: Turn Timeout:", args);
       }
-    }
+    };
 
     // Listen for events from the contract
     contract.on("GameRoomCreated", handleGameRoomCreated);

@@ -4,9 +4,8 @@ import { BsSkipForwardCircleFill } from "react-icons/bs";
 import { ImDice } from "react-icons/im";
 import { Button } from "../ui/button";
 import { useGame } from "@/context/GameContext";
-
 const PlayerActionsCard = () => {
-  const { players, roomData, clientPlayerAddress } = useGame();
+  const { players, roomData, clientPlayerAddress, drawCard, skipTurn } = useGame();
   const [count, setCount] = React.useState(roomData?.turnTimeout || 0);
   const currentPlayerIndex = roomData ? roomData.currentPlayerIndex : null;
 
@@ -65,12 +64,12 @@ const PlayerActionsCard = () => {
       </div>
 
       {clientIsPlayer && <div className={"flex flex-col gap-4 md:flex-row"}>
-        <Button className={""}>
+        <Button className={""} onClick={ () => drawCard() }>
           <ImDice className={"inline"} />
           Draw number
         </Button>
 
-        <Button className={""}>
+        <Button className={""} onClick={ () => skipTurn() }>
           <BsSkipForwardCircleFill className={"inline"} />
           Skip turn
         </Button>
