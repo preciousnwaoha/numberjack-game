@@ -5,7 +5,11 @@ import styles from "./Header.module.css"
 import { useGame } from "@/context/GameContext"
 
 const Header: React.FC = () => {
-  const { gameRound } = useGame()
+  const { roomData } = useGame()
+
+  if (!roomData) return null
+
+  const gameRound = roomData.roundCurrentValue
 
   const handleReload = () => {
     if (confirm("Sure you want to reload NUMBERJACK !!")) {
