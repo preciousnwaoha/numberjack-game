@@ -12,7 +12,7 @@ export const CORE_CHAIN_BLOCK_EXPLORER = "https://scan.test2.btcs.network";
 
 export const RANDOM_GOOFY_NAMES = ["beast", "artic", "burn"];
 
-export const SERVER_URL = "http://localhost:5000";
+export const SERVER_URL = envs.SERVER_URL;
 
 export const MIN_FEE = 0.001;
 
