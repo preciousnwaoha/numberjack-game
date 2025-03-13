@@ -25,7 +25,7 @@ export default function AboutModal() {
                 <p className={styles.aboutContentItemText}>
                   A max of 12 players are allowed in NumberJack. <br />
                   <br />
-                  Type in a maximum number between 21 and 100 for 'Max Num' and then click/tap 'Start Game' to begin.
+                  Type in a maximum number between 21 and 100 for &apos;Max Num&apos; and then click/tap &apos;Start Game&apos; to begin.
                 </p>
               </div>
             </div>
