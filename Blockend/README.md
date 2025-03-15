@@ -11,8 +11,8 @@ REPORT_GAS=true npx hardhat test
 npx hardhat node
 npx hardhat ignition deploy ./ignition/modules/Lock.js
 
-NumberJack Token contract deployed to: 0x8d4157F27Ef176e3a18398161Bb4f5930bc6Cf13
-NumberJack game contract deployed to: 0xf51CBF7d0992576D72ef72D2c484ab2096cC67a4
+NumberJack Token contract deployed to: 0x9e558ec6f71ED33b6566BA66802147b0FA3834e6
+NumberJack game contract deployed to: 0x7422e0BAf785e3058DD37F2048d1B93A6f716DE1
 
 On CORE Blockchain testnet 2.
 ```

@@ -44,6 +44,8 @@ contract NumberJackGame {
     // Their draws are stored as a flat array: [prev1, prev2, newDraw1, newDraw2, ...]
     mapping(uint256 => mapping(address => uint256[])) public playerDraws;
     mapping(uint256 => mapping(address => bool)) public isEliminated;
+    mapping(uint256 => mapping(address => bool)) public hasSkipped;
+
     uint256 public roomCounter;
 
     GameRoom[] private allGameRooms;
@@ -57,7 +59,7 @@ contract NumberJackGame {
         GameMode mode
     );
     event PlayerJoined(uint256 roomId, address player);
-    event GameStarted(uint256 _roomId);
+    event GameStarted(uint256 _roomId, uint256 timeStarted);
     event PlayerPlayed(uint256 _roomId, address player);
     event PlayerEliminated(uint256 roomId, address player);
     event WinnerDeclared(uint256 roomId, address winner, uint256 prize);
@@ -90,7 +92,7 @@ contract NumberJackGame {
         roomCounter++;
         GameRoom storage room = gameRooms[roomCounter];
         room.creator = msg.sender;
-        room.id = roomCounter; // fixed assignment from '==' to '='
+        room.id = roomCounter; 
         room.maxNumber = _maxNumber;
         room.entryFee = msg.value;
         room.isActive = true;
@@ -145,7 +147,7 @@ contract NumberJackGame {
 
         allGameRooms[_roomId - 1] = room;
 
-        emit GameStarted(_roomId);
+        emit GameStarted(_roomId, block.timestamp);
     }
 
     // Internal helper to generate two random draws (1-100) based on input nonce.
@@ -209,6 +211,8 @@ contract NumberJackGame {
 
         _advanceTurn(_roomId);
 
+        hasSkipped[_roomId][msg.sender] = false;
+
         emit PlayerPlayed(_roomId, msg.sender);
 
         return (draw1, draw2);
@@ -223,11 +227,15 @@ contract NumberJackGame {
             "Not your turn"
         );
         require(!isEliminated[_roomId][msg.sender], "You are eliminated");
+        require(!hasSkipped[_roomId][msg.sender], "Already skipped turn");
 
         require(
             gameToken.transferFrom(msg.sender, owner, skipFee),
             "Token transfer failed"
         );
+
+        hasSkipped[_roomId][msg.sender] = true;
+
         emit TurnSkipped(_roomId, msg.sender);
         _advanceTurn(_roomId);
     }
@@ -393,5 +401,10 @@ contract NumberJackGame {
         room.status = GameStatus.Ended;
 
         emit GameEnded(_roomId, room.creator);
+    }
+
+    function getPlayerObject(uint256 _roomId, address userAddress) external view returns (bool, uint256[] memory, bool) {
+        
+        return (isEliminated[_roomId][userAddress], playerDraws[_roomId][userAddress], hasSkipped[_roomId][userAddress]);
     }
 }
