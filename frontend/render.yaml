@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: numberjack
+    runtime: node
+    plan: free
+    buildCommand: yarn; yarn build
+    startCommand: yarn start
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_SERVER_URL
+        value: https://api.example.com
+      - key: NEXT_PUBLIC_CONTRACT_ADDRESS
+        value: 0x7422e0BAf785e3058DD37F2048d1B93A6f716DE1
+      - key: NEXT_PUBLIC_TOKEN_CONTACT_ADDRESS
+        value: 0x9e558ec6f71ED33b6566BA66802147b0FA3834e6

@@ -53,7 +53,7 @@ const GameBoard: React.FC = () => {
         </div>
 
         {/* Right element - Leaderboard & Recent Activity (3 columns on large screens) */}
-        <div className="md:col-span-3 flex flex-col gap-4">
+        <div className="lg:col-span-3 flex flex-col gap-4">
           <Leaderboard />
           <RecentActivity />
         </div>
