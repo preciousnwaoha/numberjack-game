@@ -3,7 +3,7 @@ import { Card } from "../ui/card";
 import { useGame } from "@/context/GameContext";
 
 const StatusBar = () => {
-  const { clientPlayerAddress, clientPlayerBalance, availableRooms } =
+  const {  clientPlayerBalance, availableRooms } =
     useGame();
 
   const playersOnline = availableRooms.reduce((acc, room) => {

@@ -3,7 +3,6 @@
 import React, { useEffect } from "react";
 import { useGame } from "@/context/GameContext";
 import { Button } from "../ui/button";
-import { Card } from "../ui/card";
 import StatusBar from "./StatusBar";
 import Header from "./Header";
 import JoinRoomItem from "./JoinRoomItem";

@@ -9,10 +9,8 @@ import Leaderboard from "./Leaderboard";
 import RecentActivity from "./RecentActivity";
 import PlayerActionsCard from "./PlayerActionsCard";
 import GameProgress from "./GameProgress";
-import { Button } from "../ui/button";
-
 const GameBoard: React.FC = () => {
-  const { endGame, players, roomData } = useGame();
+  const { players, roomData } = useGame();
 
   if (!roomData) return null;
 
