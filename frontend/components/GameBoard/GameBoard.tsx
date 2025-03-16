@@ -33,12 +33,12 @@ const GameBoard: React.FC = () => {
 
       <div className="grid gap-4 md:grid-cols-12">
         {/* Left element - Active Players (3 columns on large screens) */}
-        <div className="hidden md:col-span-3 md:block">
+        <div className="hidden md:col-span-4 lg:col-span-3 md:block">
           <ActivePlayers />
         </div>
 
         {/* Center element - Player Actions Card (6 columns on large screens) */}
-        <div className="md:col-span-6 flex flex-col gap-4">
+        <div className="md:col-span-8 lg:col-span-6 flex flex-col gap-4">
           <PlayerActionsCard />
           <GameProgress
             progress={gameRound}
@@ -53,7 +53,7 @@ const GameBoard: React.FC = () => {
         </div>
 
         {/* Right element - Leaderboard & Recent Activity (3 columns on large screens) */}
-        <div className="lg:col-span-3 flex flex-col gap-4">
+        <div className="md:col-span-12 lg:col-span-3 flex flex-col gap-4">
           <Leaderboard />
           <RecentActivity />
         </div>

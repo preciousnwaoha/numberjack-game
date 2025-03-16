@@ -1,16 +1,12 @@
 import React, { useMemo } from "react";
 import { Card } from "../ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { useGame } from "@/context/GameContext";
 import { truncateAddress } from "@/lib/utils";
+import PlayerAvatar from "../StartScreens/PlayerAvatar";
 
 const Leaderboard = () => {
   const {players, roomData} = useGame();
   
-
-  const seed = useMemo(() => Math.random().toString(36).substring(2, 10), []);
-  const avatarUrl = `https://api.dicebear.com/9.x/pixel-art/svg?seed=${seed}`;
-
   if (!roomData) return null;
 
   const currentPlayerIndex = roomData.currentPlayerIndex;
@@ -40,12 +36,9 @@ const Leaderboard = () => {
               >
                 {index + 1}
               </p>
-              <Avatar>
-                <AvatarImage src={avatarUrl} alt={player.name} />
-                <AvatarFallback>XX</AvatarFallback>
-              </Avatar>
+              <PlayerAvatar />
               <div className={"flex flex-col"}>
-                <p className={""}>{truncateAddress( player.address)}</p>
+                <p className={"text-sm"}>{truncateAddress( player.address)}</p>
               </div>
 
               <p className={"font-bold text-lg"}>{player.total}</p>
