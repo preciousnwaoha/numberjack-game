@@ -3,7 +3,7 @@
 0x8d4157F27Ef176e3a18398161Bb4f5930bc6Cf13
 
 ## Web
-https://numberjack-game.vercel.app/
+https://numberjack.onrender.com
 
 
 ## Server

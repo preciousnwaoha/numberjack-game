@@ -9,12 +9,12 @@ const PlayerActionsCard = () => {
   const { players, roomData, clientPlayerAddress, drawCard, skipTurn, forceAdvance } =
     useGame();
   const [count, setCount] = React.useState(roomData?.turnTimeout || 0);
-  const currentPlayerIndex = roomData ? roomData.currentPlayerIndex : null;
+  const currentPlayerAddress = roomData ? roomData.currentPlayerAddress : null;
 
   // Reset timer when currentPlayer changes or when the timeout value updates.
   React.useEffect(() => {
     setCount(roomData?.turnTimeout || 0);
-  }, [currentPlayerIndex, roomData?.turnTimeout]);
+  }, [currentPlayerAddress, roomData?.turnTimeout]);
 
   // Countdown effect: decrease count every second.
   React.useEffect(() => {
@@ -25,13 +25,15 @@ const PlayerActionsCard = () => {
     return () => clearTimeout(timer);
   }, [count]);
 
-  if (!roomData || currentPlayerIndex === null) return null;
-  const player = players[currentPlayerIndex];
+  if (!roomData || currentPlayerAddress === null) return null;
+  const player = players.find((p) => p.address === currentPlayerAddress);
+
+  if (!player) return null;
 
   const last2Draws =
     player.draws && player.draws.length > 1 ? player.draws.slice(-2) : [0, 0];
 
-  const clientIsCurrentPlayer = clientPlayerAddress === player.address;
+  const clientIsCurrentPlayer = clientPlayerAddress === currentPlayerAddress;
 
   const timeoutOccurred = count === 0;
 

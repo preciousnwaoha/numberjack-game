@@ -19,13 +19,12 @@ interface PlayerCardProps {
 }
 
 const PlayerCard: React.FC<PlayerCardProps> = ({ player }) => {
-  const { drawCard, skipTurn, players, roomData } = useGame();
+  const { drawCard, skipTurn, roomData } = useGame();
 
   if (!player || !roomData) return
 
-  const currentPlayer = roomData.currentPlayerIndex;
 
-  const isCurrentPlayer = player.address === players[currentPlayer].address;
+  const isCurrentPlayer = player.address === roomData.currentPlayerAddress;
   
   const { color } = player;
 

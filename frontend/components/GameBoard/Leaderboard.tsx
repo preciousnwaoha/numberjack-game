@@ -8,8 +8,6 @@ const Leaderboard = () => {
   const {players, roomData} = useGame();
   
   if (!roomData) return null;
-
-  const currentPlayerIndex = roomData.currentPlayerIndex;
   
   return (
     <Card className={"flex flex-col gap-3 px-4 py-2"}>
@@ -17,7 +15,7 @@ const Leaderboard = () => {
 
       {/* // TODO: Player scores for each round */}
       {players.sort((a, b) => a.total-b.total).map((player, index) => {
-        const playerIsCurrent = currentPlayerIndex === index;
+        const playerIsCurrent = player.address === roomData.currentPlayerAddress;
 
         return (
           <div

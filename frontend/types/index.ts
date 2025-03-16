@@ -25,7 +25,7 @@ export type ContractRoomTypeWithoutStatusAndMode = {
   roundCurrentValue: number;
   startTime: number;
   duration: number;
-  currentPlayerIndex: number;
+  
   lastTurnTimestamp: number;
   turnTimeout: number;
 };
@@ -34,6 +34,7 @@ export interface ContractRoomType extends ContractRoomTypeWithoutStatusAndMode {
   id: number;
   status: number;
   mode: number;
+  currentPlayerIndex: number;
 }
 
 export interface RoomType extends ContractRoomTypeWithoutStatusAndMode {
@@ -41,6 +42,7 @@ export interface RoomType extends ContractRoomTypeWithoutStatusAndMode {
   name: string;
   status: GameStatusType;
   mode: GameModeType;
+  currentPlayerAddress: string;
 }
 
 export interface GameType {

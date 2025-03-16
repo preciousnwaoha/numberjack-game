@@ -10,12 +10,12 @@ const ActivePlayers = () => {
 
 
   if (!roomData) return null;
-  const currentPlayerIndex = roomData.currentPlayerIndex;
+
   return (
     <Card className={"flex flex-col gap-3 px-4 py-2"}>
       <h4 className={"text-lg font-bold"}>Active Players</h4>
       {players.map((player, index) => {
-        const playerIsCurrent = currentPlayerIndex === index;
+        const playerIsCurrent = player.address === roomData.currentPlayerAddress;
 
         const playerStatus = !player.isActive
           ? "bust"

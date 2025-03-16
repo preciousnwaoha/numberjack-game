@@ -343,12 +343,18 @@ export const getAvailableRoomsApi = async ({
 }) => {
   try {
     const rooms = await contract.getAvailableRooms();
+    
     const mappedRooms: RoomType[] = rooms.map(
-      (room: ContractRoomType, index: number): RoomType => ({
+      (room: ContractRoomType, index: number): RoomType => {
+        const roomPlayerAddrs = room.players.map((addr: string) =>
+          addr.toLowerCase()
+        );
+
+        return ({
         creator: room.creator,
         name: "Room " + (index + 1),
         id: Number(room.id).toString(),
-        players: [...room.players.map((addr: string) => addr.toLowerCase())],
+        players: roomPlayerAddrs,
         mode: room.mode.toString() === "0" ? "Rounds" : "TimeBased",
         roundValue: Number(room.roundValue),
         roundCurrentValue: 1,
@@ -363,10 +369,10 @@ export const getAvailableRoomsApi = async ({
         entryFee: Number(room.entryFee),
         startTime: Number(room.startTime),
         duration: Number(room.duration),
-        currentPlayerIndex: Number(room.currentPlayerIndex),
+        currentPlayerAddress: roomPlayerAddrs[Number(room.currentPlayerIndex)],
         lastTurnTimestamp: Number(room.lastTurnTimestamp),
         turnTimeout: Number(room.turnTimeout),
-      })
+      })}
     );
     return {
       success: true,
@@ -435,6 +441,8 @@ export const getRoomByIdApi = async ({
 }) => {
   try {
     const room = await contract.getGameRoomById(roomId);
+    const roomPlayerAddrs = room.players.map((addr: string) =>
+      addr.toLowerCase() );
     const fomattedRoom: RoomType = {
       creator: room.creator,
       name: "Room " + roomId, // use a naming convention or fetch actual name
@@ -454,7 +462,7 @@ export const getRoomByIdApi = async ({
       entryFee: Number(room.entryFee),
       startTime: Number(room.startTime),
       duration: Number(room.duration),
-      currentPlayerIndex: Number(room.currentPlayerIndex),
+      currentPlayerAddress: roomPlayerAddrs[Number(room.currentPlayerIndex)],
       lastTurnTimestamp: Number(room.lastTurnTimestamp),
       turnTimeout: Number(room.turnTimeout),
     };

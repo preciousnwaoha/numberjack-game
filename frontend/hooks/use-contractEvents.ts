@@ -63,7 +63,7 @@ const useContractEvents = ({
         entryFee: entryFee,
         startTime: 0,
         duration: 0,
-        currentPlayerIndex: 0,
+        currentPlayerAddress: creatorAddress,
         lastTurnTimestamp: 0,
         turnTimeout: 0,
       };
