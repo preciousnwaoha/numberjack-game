@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import { Card } from "../ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { useGame } from "@/context/GameContext";
+import { truncateAddress } from "@/lib/utils";
 
 const Leaderboard = () => {
   const {players, roomData} = useGame();
@@ -18,7 +19,8 @@ const Leaderboard = () => {
     <Card className={"flex flex-col gap-3 px-4 py-2"}>
       <h4 className={"text-lg font-bold"}>Leaderboard</h4>
 
-      {players.map((player, index) => {
+      {/* // TODO: Player scores for each round */}
+      {players.sort((a, b) => a.total-b.total).map((player, index) => {
         const playerIsCurrent = currentPlayerIndex === index;
 
         return (
@@ -43,7 +45,7 @@ const Leaderboard = () => {
                 <AvatarFallback>XX</AvatarFallback>
               </Avatar>
               <div className={"flex flex-col"}>
-                <p className={""}>{player.address}</p>
+                <p className={""}>{truncateAddress( player.address)}</p>
               </div>
 
               <p className={"font-bold text-lg"}>{player.total}</p>

@@ -13,7 +13,6 @@ import {
   forceAdvanceApi,
   getAvailableRoomsApi,
   getPlayerRoomApi,
-  getPlayersApi,
   joinRoomApi,
   playTurnApi,
   skipTurnApi,
@@ -22,7 +21,7 @@ import {
 import useSocket from "@/hooks/use-socket";
 import useContractEvents from "@/hooks/use-contractEvents";
 // import useNetwork from "@/hooks/use-network";
-import { randomPlayerColor } from "@/lib/utils";
+import { playerFromContractToPlayerType } from "@/lib/utils";
 
 interface GameContextType {
   contract?: ethers.Contract;
@@ -44,7 +43,6 @@ interface GameContextType {
   drawCard: () => Promise<void>;
   skipTurn: () => Promise<void>;
   getAvailableRooms: () => Promise<void>;
-  getPlayers: (roomId: string) => Promise<void>;
   connect: () => Promise<void>;
   error: string;
   loading: string;
@@ -88,6 +86,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
     setAvailableRooms,
     players,
     roomData,
+    clientPlayerAddress
   });
 
   useContractEvents({
@@ -100,6 +99,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
     clientPlayerAddress,
     roomData,
     availableRooms,
+    setLoading,
   });
 
   // useNetwork({
@@ -117,20 +117,27 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [notification]);
 
   useEffect(() => {
+    if (error) {
+      setTimeout(() => {
+        setError("");
+      }, 6000);
+    }
+  }, [error]);
+
+  useEffect(() => {
     const getPlayerAndRoomData = async () => {
       if (connected && contract && clientPlayerAddress) {
-        console.log("Starting getPlayerRoomApi");
+        setLoading("Checking player and room data...");
         const { error, data } = await getPlayerRoomApi({
           contract,
           playerAddress: clientPlayerAddress.toLowerCase(),
         });
 
-        console.log("Checking Data: ", { error, data });
-
+        setLoading("")
         if (error) {
-          setError(error);
           return;
         }
+        
 
         if (data) {
           setRoomData(data.room);
@@ -146,16 +153,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
                   ..._player,
                 };
               } else {
-                return {
-                  name: "Random Name",
-                  address: _player.address,
-                  draws: _player.draws,
-                  total: _player.total,
-                  isActive: _player.isActive,
-                  hasSkippedTurn: false, // TODO: provide player hasSkipped
-                  color: randomPlayerColor(),
-                  claimed: false,
-                };
+                return playerFromContractToPlayerType({
+                  player: _player,
+                });
               }
             });
           });
@@ -182,12 +182,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const connectWallet = async () => {
     const {
-      provider,
-      signer,
-      contract,
-      connected,
-      clientPlayerAddress,
-      clientPlayerBalance,
+      provider: providerGuy,
+      signer: signGuy,
+      contract: cntrct,
+      connected: isConnected,
+      clientPlayerAddress: cPA,
+      clientPlayerBalance: cPB,
       error,
     } = await connectWalletApi();
 
@@ -195,12 +195,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
       setError(error);
       return;
     } else {
-      setProvider(provider);
-      setSigner(signer);
-      setContract(contract);
-      setConnected(connected);
-      setClientPlayerAddress(clientPlayerAddress);
-      setClientPlayerBalance(clientPlayerBalance);
+      setProvider(providerGuy);
+      setSigner(signGuy);
+      setContract(cntrct);
+      setConnected(isConnected);
+      setClientPlayerAddress(cPA.toLowerCase());
+      setClientPlayerBalance(cPB);
     }
   };
 
@@ -211,10 +211,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
       return;
     }
 
-    const { error } = await createRoomApi({ ...newRoom, contract });
+    setLoading("Creating room...");
 
+    const { error } = await createRoomApi({ ...newRoom, contract });
     if (error) {
       setError(error);
+      setLoading("");
       return;
     }
   };
@@ -225,12 +227,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
       setError(errors.NO_CONTRACT_FOUND);
       return;
     }
+    setLoading("Joining room...");
     const { error } = await joinRoomApi({
       roomId: Number(roomId),
       contract,
     });
     if (error) {
       setError(error);
+      setLoading("");
       return;
     }
   };
@@ -246,13 +250,15 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
       return;
     }
 
+    setLoading("Starting Game...");
+
     const { error } = await startGameApi({
       roomId: Number(roomData.id),
       contract,
     });
-
     if (error) {
       setError(error);
+      setLoading("");
       return;
     }
   };
@@ -379,62 +385,19 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
       contract,
     });
 
+    console.log("Available Rooms: ", { error, success, data });
+
     if (error) {
       setError(error);
       setLoading("");
       return;
     }
 
-    if (success && data) {
+    if (success) {
       setAvailableRooms(data);
       setLoading("");
+      setError("");
     }
-  };
-
-  // Retrieve players from the current room and update local state.
-  const getPlayers = async (roomId: string) => {
-    if (!roomData) {
-      setError(errors.NO_GAME_ROOM_FOUND);
-      return;
-    }
-    if (!contract) {
-      setError(errors.NO_CONTRACT_FOUND);
-      return;
-    }
-
-    const { error, data } = await getPlayersApi({
-      roomId: Number(roomId),
-      contract,
-    });
-
-    if (error || !data) {
-      setError(error);
-      return;
-    }
-
-    setPlayers((prev) => {
-      return data.map((_player) => {
-        const playerInStore = prev.find((p) => p.address === _player.address);
-
-        if (playerInStore) {
-          return {
-            ...playerInStore,
-            ..._player,
-          };
-        } else {
-          return {
-            name: "Random Name",
-            address: _player.address,
-            draws: _player.draws,
-            total: _player.total,
-            isActive: _player.isActive,
-            hasSkippedTurn: false, // TODO: provide player hasSkipped
-            color: randomPlayerColor(),
-            claimed: false,
-          };
-        }
-      });
-    });
   };
 
   const endGame = async () => {
@@ -485,7 +448,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({
     forceAdvance,
     skipTurn,
     getAvailableRooms,
-    getPlayers,
     connect: connectWallet,
     onLoading: handleLoading,
   };

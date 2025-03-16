@@ -1,22 +1,16 @@
 "use client";
 
 import type React from "react";
-import { Button } from "@/components/ui/button";
 import { useGame } from "@/context/GameContext";
 
 const Footer: React.FC = () => {
-  const { connect, clientPlayerAddress, connected } = useGame();
+  const { clientPlayerAddress, connected } = useGame();
 
 
 
   return (
    
       <footer>
-        {!connected && <Button onClick={() => {
-          connect();
-        }} variant="outline">
-          Connect Wallet
-        </Button>}
 
         {connected && <div>
             {clientPlayerAddress}

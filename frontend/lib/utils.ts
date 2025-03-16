@@ -61,13 +61,28 @@ export const playerFromContractToPlayerType = ({
     draws: number[];
     total: number;
     isActive: boolean;
+    hasSkippedTurn: boolean;
   };
 }): PlayerType => {
   return {
     name: "",
     ...player,
-    hasSkippedTurn: false,
     claimed: false,
     color: randomPlayerColor(),
   };
+};
+
+
+
+export const truncateAddress = (address: string, chars = 4) => {
+  return `${address.slice(0, chars + 2)}...${address.slice(-chars)}`;
+}
+
+// Format seconds into mm:ss.
+export const formatTime = (seconds:number ) => {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins.toString().padStart(2, '0')}:${secs
+    .toString()
+    .padStart(2, '0')}`;
 };

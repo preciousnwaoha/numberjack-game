@@ -8,6 +8,7 @@ interface useSocketProps {
   setAvailableRooms: React.Dispatch<React.SetStateAction<RoomType[]>>;
   players: PlayerType[];
   roomData: RoomType | null;
+  clientPlayerAddress: string;
 }
 
 const useSocket = ({
@@ -15,6 +16,7 @@ const useSocket = ({
   setRoomData,
   setAvailableRooms,
   roomData,
+  clientPlayerAddress,
 }: useSocketProps) => {
   useEffect(() => {
     // Connect the socket
@@ -89,7 +91,7 @@ const useSocket = ({
         draws: [number, number];
       }) => {
         const { roomId, playerAddress, draws } = data;
-        if (roomData?.id === roomId) {
+        if ((roomData?.id === roomId) && (clientPlayerAddress.toLowerCase() !== playerAddress.toLowerCase())) {
           console.log(`🎮 Socket Player ${playerAddress} drew:`, draws);
           setPlayers((prev) => {
             const updatedPlayers = prev.map((p) => {
@@ -113,20 +115,8 @@ const useSocket = ({
       (data: { roomId: string; playerAddress: string }) => {
         const { roomId, playerAddress } = data;
         if (roomData?.id === roomId) {
-          console.log(`🎮 Scoket Player ${playerAddress} skipped turn`);
-          setPlayers((prev) => {
-            const updatedPlayers = prev.map((p) => {
-              if (p.address === playerAddress) {
-                return {
-                  ...p,
-                  hasSkippedTurn: true,
-                };
-              }
-              return p;
-            });
-
-            return updatedPlayers;
-          });
+          console.log(`🎮 Socket Player ${playerAddress} skipped turn`);
+         
         }
       }
     );

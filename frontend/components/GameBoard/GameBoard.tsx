@@ -23,7 +23,7 @@ const GameBoard: React.FC = () => {
   const playersRemaining = players.filter((player) => player.isActive).length;
 
   return (
-    <div className={"container relative grid gap-4 bg-gray-100 p-4"}>
+    <div className={" relative grid gap-4 bg-gray-100 p-4 h-[100%] min-h-screen"}>
       <div className={"flex gap-4"}>
         <Logo />
 
@@ -31,13 +31,11 @@ const GameBoard: React.FC = () => {
           <TextMainCard text="Round" main={`${gameRound}/${maxRounds}`} />
           <TextMainCard text="Max Number" main={maxNumber.toString()} />
         </div>
-
-        <Button variant="outline" onClick={() => endGame()}>End Game</Button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-12">
         {/* Left element - Active Players (3 columns on large screens) */}
-        <div className="md:col-span-3">
+        <div className="hidden md:col-span-3 md:block">
           <ActivePlayers />
         </div>
 
@@ -50,6 +48,10 @@ const GameBoard: React.FC = () => {
             text="Rounds progress"
             subtext={`${playersRemaining}/${players.length} players remaining`}
           />
+        </div>
+
+        <div className="block md:col-span-3 md:hidden w-full">
+          <ActivePlayers />
         </div>
 
         {/* Right element - Leaderboard & Recent Activity (3 columns on large screens) */}

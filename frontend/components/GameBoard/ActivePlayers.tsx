@@ -2,6 +2,7 @@ import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { useMemo } from "react";
 import { useGame } from "@/context/GameContext";
+import { truncateAddress } from "@/lib/utils";
 
 const ActivePlayers = () => {
   const {players, roomData} = useGame();
@@ -47,7 +48,7 @@ const ActivePlayers = () => {
                   <AvatarFallback>XX</AvatarFallback>
                 </Avatar>
                 <div className={"flex flex-col"}>
-                  <p className={""}>{player.address}</p>
+                  <p className={""}>{truncateAddress( player.address)}</p>
                   <p className={`${playerStatusColor}`}>{playerStatus}</p>
                 </div>
               </div>

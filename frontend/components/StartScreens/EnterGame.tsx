@@ -10,11 +10,12 @@ import JoinRoom from "./JoinRoom";
 import Logo from "../ui/Logo";
 import Footer from "./Footer";
 import CreateRoom from "./CreateRoom";
+import ThreeBackground from "./ThreeBackground";
 
 type View = "enterGame" | "createRoom" | "joinRoom";
 
 const EnterGame: React.FC = () => {
-  const { roomData, players} = useGame();
+  const { roomData, loading, players, connect, connected } = useGame();
   const [view, setView] = useState<View>("enterGame");
 
   const handleChangeView = (view: View) => {
@@ -27,51 +28,66 @@ const EnterGame: React.FC = () => {
     if (roomData.status === "InProgress" && players.length > 1) {
       return <GameBoard />;
     }
-    return <Lobby />;
+    return <Lobby onBack={() => handleChangeView("enterGame")} />;
   }
 
   if (view === "createRoom") {
-    return <CreateRoom 
-      onBack={() => handleChangeView("enterGame")}
-    />;
+    return <CreateRoom onBack={() => handleChangeView("enterGame")} />;
   }
 
   if (view === "joinRoom") {
-    return <JoinRoom />;
+    return <JoinRoom onBack={() => handleChangeView("enterGame")} />;
   }
 
   return (
-    <div className={"H-screen flex flex-col justify-center items-center gap-4"}>
+    <div
+      className={
+        "h-screen bg-[#111827] flex flex-col items-center gap-4 p-4 relative"
+      }
+    >
+      <ThreeBackground />
       <Logo />
 
-      <p className={"text-3xl"}>Draw your luck and earn your stack!</p>
+      <p className={"text-sm text-white"}>
+        Draw your luck and earn your stack!
+      </p>
 
-      <div className="w-2/3 bg-gray-100 p-4 rounded-lg flex flex-col gap-4 items-center relative">
-        <img
-          src="https://via.placeholder.com/150"
-          alt="placeholder"
-          className="absolute top-0 right-0"
-        />
+      <div className="w-[100%] h-[100%] md:max-w-2/3 p-4 flex flex-col gap-4 items-center relative border border-[#374151] rounded-3xl">
+        {!loading && (
+          <div>
+            {!connected && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  connect();
+                }}
+              >
+                Connect Wallet
+              </Button>
+            )}
+            {connected && (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => handleChangeView("createRoom")}
+                >
+                  Create Room
+                </Button>
 
-        <div>
-        
+                <Button
+                  variant="outline"
+                  onClick={() => handleChangeView("joinRoom")}
+                >
+                  Join Room
+                </Button>
+              </>
+            )}
+          </div>
+        )}
 
-          <Button
-            variant="outline"
-            onClick={() => handleChangeView("createRoom")}
-          >
-            Create Room
-          </Button>
+        {loading && <p className="text-white">{loading}</p>}
 
-          <Button
-            variant="outline"
-            onClick={() => handleChangeView("joinRoom")}
-          >
-            Join Room
-          </Button>
-        </div>
-
-        <div>
+        <div className="text-white text-center">
           <h4>How to play?</h4>
           <p>
             Draw numbers, stay under the max, outsmart your <b />

@@ -3,12 +3,20 @@
 import React, { useEffect } from "react";
 import { useGame } from "@/context/GameContext";
 import { Button } from "../ui/button";
-import Logo from "../ui/Logo";
 import { Card } from "../ui/card";
 import StatusBar from "./StatusBar";
+import Header from "./Header";
+import JoinRoomItem from "./JoinRoomItem";
 
-const JoinRoom: React.FC = () => {
-  const { joinRoom, availableRooms, error, loading, getAvailableRooms } = useGame();
+interface JoinRoomProps {
+  onBack?: () => void;
+}
+
+const JoinRoom: React.FC<JoinRoomProps> = ({
+  onBack,
+}) => {
+  const { joinRoom, availableRooms, error, loading, getAvailableRooms } =
+    useGame();
 
   useEffect(() => {
     const fetchAvailableRooms = () => {
@@ -23,58 +31,44 @@ const JoinRoom: React.FC = () => {
     joinRoom(id);
   };
 
+
   return (
-    <div className={"bg-gray-100 p-4 flex flex-col gap-4"}>
+    <div className={"h-[100%] min-h-screen bg-gray-100 p-4 flex flex-col gap-4"}>
+      <Header title={"Available rooms"} />
+
       <div>
-        <Logo />
+        <Button onClick={onBack}>Back</Button>
       </div>
+      
+      {!loading && (
+        <ul className="grid gap-4 md:grid-cols-3">
+          {availableRooms.map((room, index) => {
+            return (
+              <JoinRoomItem 
+                key={index} 
+                room={room} 
+                handleJoinRoom={handleJoinRoom}
+              />
+            );
+          })}
+        </ul>
+      )}
 
-      <h1>Join Room</h1>
-      {!loading && <ul className="grid gap-4 md:grid-cols-3">
-        {availableRooms.map((room, index) => {
-          return (
-            <Card
-              key={index}
-              className={"flex flex-col gap-2 p-4 md:col-span-1"}
-            >
-              <div>
-                <p>{room.name || `Game Room # ${room.id}`}</p>
-              </div>
+      {loading && <p className="text-center">Loading...</p>}
 
-              <div>
-                <div>
-                  <p>{room.players.length} players</p>
-                </div>
-                <div>
-                  <p> Max:{room.maxNumber}</p>
-                </div>
-                <div>
-                  <p>{room.mode}</p>
-                </div>
-                <div>
-                  <p>{room.roundValue}</p>
-                </div>
-              </div>
+      {error && <p className="text-center">{error}</p>}
 
-              <Button onClick={() => handleJoinRoom(room.id)}>
-                Join Room {room.entryFee}
-              </Button>
-            </Card>
-          );
-        })}
-      </ul>}
+      {availableRooms.length === 0 && !loading && (
+        <p className="text-center">No available rooms</p>
+      )}
 
-      {loading && <p>Loading...</p>}
-
-      {error && <p>{error}</p>}
-
-      <Card className={"flex flex-col gap-4 p-4"}>
+      {/* <Card className={"flex flex-col gap-4 p-4"}>
         <p>
           <span>Pro Tip:</span>
           Watch the timer carefully in timed mode! Quick decisions often lead to
           better results.
         </p>
-      </Card>
+      </Card> */}
 
       <StatusBar />
     </div>

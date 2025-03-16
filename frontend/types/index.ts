@@ -8,6 +8,7 @@ export interface PlayerType {
   hasSkippedTurn: boolean;
   color: string;
   claimed: boolean;
+  image?: string;
 }
 
 export type GameModeType = 'Rounds' | 'TimeBased';

@@ -479,15 +479,12 @@ export const getRoomPlayerApi = async ({
   playerAddress: string;
 }) => {
   try {
-    const draws: number[] = await contract.getPlayerDrawsForGameRoom(
+    const [isEliminated, draws, hasSkipped]: [boolean, number[], boolean] = await contract.getPlayerObject(
       roomId,
       playerAddress
     );
 
-    const eliminated = await contract.getIsPlayerEliminatedByRoomId(
-      roomId,
-      playerAddress
-    );
+    console.log("getRoomPlayerApi: Player data:", [isEliminated, draws, hasSkipped]);
 
     const mapedDraws = draws.map((draw) => Number(draw));
     const total = mapedDraws.reduce((acc, curr) => acc + curr, 0);
@@ -498,7 +495,8 @@ export const getRoomPlayerApi = async ({
         address: playerAddress,
         draws: mapedDraws,
         total,
-        isActive: Boolean(eliminated),
+        isActive: !isEliminated,
+        hasSkippedTurn: hasSkipped,
       },
     };
   } catch (error) {

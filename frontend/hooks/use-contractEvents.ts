@@ -1,5 +1,5 @@
 import { getPlayersApi, getRoomByIdApi } from "@/lib/contracts/api";
-import { playerFromContractToPlayerType } from "@/lib/utils";
+import { playerFromContractToPlayerType, truncateAddress } from "@/lib/utils";
 
 import {
   GameModeType,
@@ -18,6 +18,7 @@ interface UseContractEventsProps {
   setAvailableRooms: React.Dispatch<React.SetStateAction<RoomType[]>>;
   setPlayers: React.Dispatch<React.SetStateAction<PlayerType[]>>;
   setRecentActivities: React.Dispatch<React.SetStateAction<RecentActivity[]>>;
+  setLoading: React.Dispatch<React.SetStateAction<string>>;
   clientPlayerAddress: string;
   roomData: RoomType | null;
   availableRooms: RoomType[];
@@ -30,6 +31,7 @@ const useContractEvents = ({
   setAvailableRooms,
   setPlayers,
   setRecentActivities,
+  setLoading,
   clientPlayerAddress,
   roomData,
   availableRooms,
@@ -40,45 +42,40 @@ const useContractEvents = ({
     // Define contract event handlers
     const handleGameRoomCreated = (...args: unknown[]) => {
       const roomId = Number(args[0]).toString();
+      if (roomData?.id === roomId) return;
       const creatorAddress = (args[1] as string).toLowerCase() as string;
       const maxNumber = Number(args[2]);
       const entryFee = Number(args[3]);
-      console.log("Game Room Created:", {
-        roomId,
-        creatorAddress,
-        maxNumber,
-        entryFee,
-      });
+      const mode: GameModeType =
+        Number(args[4]).toString() === "0" ? "Rounds" : "TimeBased";
+
       const newRoom = {
         creator: creatorAddress,
         name: "Some Room Name",
         id: roomId,
         players: [clientPlayerAddress],
-        mode: "Rounds" as GameModeType,
+        mode: mode,
         roundValue: 3, // TODO: Emit modevalue with mode
         roundCurrentValue: 1,
         maxNumber: maxNumber,
         isActive: true,
         status: "NotStarted" as GameStatusType,
         entryFee: entryFee,
-        startTime: new Date().getTime(), // TODO: Emit start time
+        startTime: 0,
         duration: 0,
         currentPlayerIndex: 0,
         lastTurnTimestamp: 0,
         turnTimeout: 0,
       };
       if (clientPlayerAddress.toLowerCase() === creatorAddress) {
+        setLoading("");
         setRoomData(newRoom);
-        setRecentActivities((prev) => [
-          ...prev,
-          {
-            type: "create",
-            text: `Room created successfully!`,
-            timestamp: new Date().getTime(),
-          },
-        ]);
+        
       } else {
-        setAvailableRooms((prev) => [...prev, newRoom]);
+        setAvailableRooms((prev) => {
+          const roomIds = prev.map((room) => room.id);
+          return roomIds.includes(newRoom.id) ? prev : [...prev, newRoom];
+        });
       }
     };
 
@@ -105,16 +102,10 @@ const useContractEvents = ({
           contract,
         });
         if (!data) return;
+        setLoading("");
         setPlayers(newPlayers);
         setRoomData(data);
-        setRecentActivities((prev) => [
-          ...prev,
-          {
-            type: "join",
-            text: `${playerAddress} joined the room`,
-            timestamp: new Date().getTime(),
-          },
-        ]);
+       
       } else if (!roomData) {
         // client is not in any room
         const room = availableRooms.find((room) => room.id === roomId);
@@ -132,6 +123,7 @@ const useContractEvents = ({
       console.log("Event: Game Room Joined:", roomId, playerAddress);
     };
 
+    // TODO: Emit player left room (can leave if game is not started)
     // const handlePlayerLeft = (...args: unknown[]) => {
     //   // TOD0: Emit the player who left
     //   const roomId = Number(args[0]).toString();
@@ -173,8 +165,9 @@ const useContractEvents = ({
     const handleGameStarted = (...args: unknown[]) => {
       // TODO: Emit Time started
       const roomId = Number(args[0]).toString();
+      const startTime = Number(args[1]);
       if (roomData?.id === roomId) {
-        const startTime = Date.now();
+        setLoading("");
         setRoomData((prev) =>
           prev
             ? {
@@ -184,14 +177,22 @@ const useContractEvents = ({
               }
             : null
         );
-
+        setRecentActivities((prev) => [
+          ...prev,
+          {
+            type: "start",
+            text: `Game started`,
+            timestamp: new Date().getTime(),
+          },
+        ]);
         console.log("Event: Game Started:", args);
       }
     };
 
     const handleTurnPlayed = (...args: unknown[]) => {
-      // TODO: Emit the Draws
+      // TODO: Event is useless without emiting the draws
       const roomId = Number(args[0]).toString();
+      // const draws = args[1] as [number, number];
       if (roomData?.id === roomId) {
         console.log("Event: Turn Played:", args);
       }
@@ -202,11 +203,24 @@ const useContractEvents = ({
       const playerAddress = (args[1] as string).toLowerCase();
       if (roomData?.id === roomId) {
         console.log("Turn Skipped:", args);
+        setPlayers((prev) => {
+          const updatedPlayers = prev.map((p) => {
+            if (p.address === playerAddress) {
+              return {
+                ...p,
+                hasSkippedTurn: true,
+              };
+            }
+            return p;
+          });
+
+          return updatedPlayers;
+        });
         setRecentActivities((prev) => [
           ...prev,
           {
             type: "skip",
-            text: `${playerAddress} skipped their turn`,
+            text: `${truncateAddress(playerAddress)} skipped their turn`,
             timestamp: new Date().getTime(),
           },
         ]);
@@ -216,11 +230,16 @@ const useContractEvents = ({
     const handleTurnAdvanced = (...args: unknown[]) => {
       const roomId = args[0];
       const playerAddress = (args[1] as string).toLowerCase();
+      const roundCurrentValue = Number(args[2]);
+      const lastTurnTimestamp = Number(args[3]);
+      //
       if (roomData?.id === roomId) {
         setRoomData((prev) =>
           prev
             ? {
                 ...prev,
+                roundCurrentValue,
+                lastTurnTimestamp,
                 currentPlayerIndex: prev.players.findIndex(
                   (addr) => addr === playerAddress
                 ),
@@ -231,7 +250,7 @@ const useContractEvents = ({
           ...prev,
           {
             type: "turn",
-            text: `${playerAddress} advanced their turn`,
+            text: `${truncateAddress(playerAddress)} advanced their turn`,
             timestamp: new Date().getTime(),
           },
         ]);
@@ -260,7 +279,7 @@ const useContractEvents = ({
           ...prev,
           {
             type: "bust",
-            text: `${playerAddress} was eliminated`,
+            text: `${truncateAddress(playerAddress)} was eliminated`,
             timestamp: new Date().getTime(),
           },
         ]);
@@ -268,6 +287,7 @@ const useContractEvents = ({
       }
     };
 
+    // TODO: How is there a no winner possibility in the CheckWinner Contract function
     const handleWinnerDeclared = (...args: unknown[]) => {
       // TODO: Why cant we get winner for a game
       const roomId = Number(args[0]).toString() as string;
@@ -285,8 +305,8 @@ const useContractEvents = ({
         setRecentActivities((prev) => [
           ...prev,
           {
-            type: "winner",
-            text: `${winnerAddress} won the game`,
+            type: "win",
+            text: `${truncateAddress(winnerAddress)} won the game`,
             timestamp: new Date().getTime(),
           },
         ]);
@@ -296,9 +316,17 @@ const useContractEvents = ({
 
     const handleTurnTimeout = (...args: unknown[]) => {
       const roomId = Number(args[0]).toString() as string;
-      // const playerAddress = (args[1] as string).toLowerCase();
+      const playerAddress = (args[1] as string).toLowerCase();
       if (roomData?.id === roomId) {
         console.log("Event: Turn Timeout:", args);
+        setRecentActivities((prev) => [
+          ...prev,
+          {
+            type: "timeout",
+            text: `${truncateAddress(playerAddress) } turn timed out and was forced`,
+            timestamp: new Date().getTime(),
+          },
+        ]);
       }
     };
 
