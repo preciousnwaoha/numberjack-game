@@ -1,91 +1,31 @@
-import { PlayerType, RoomType } from "@/types";
+import { ethers } from "ethers";
+import { envs } from "./envs";
+
+export const GAME_CONTRACT_ADDRESS = envs.CONTRACT_ADDRESS;
+export const TOKEN_CONTACT_ADDRESS = envs.TOKEN_CONTACT_ADDRESS;
+
+export const CORE_CHAIN_ID = 1114;
+export const CORE_CHAIN_NETWORK_NAME = "Core Blockchain TestNet"
+export const CORE_CHAIN_CURRENCY_SYMBOL = "TCORE2"
+export const CORE_CHAIN_URL = "https://rpc.test2.btcs.network";
+export const CORE_CHAIN_BLOCK_EXPLORER = "https://scan.test2.btcs.network";
 
 export const RANDOM_GOOFY_NAMES = ["beast", "artic", "burn"];
 
-export const SERVER_URL = "http://localhost:5000";
+export const SERVER_URL = envs.SERVER_URL;
 
-export const MIN_FEE = 0.0001;
+export const MIN_FEE = 0.001;
 
-export const DUMMY_PLAYERS: PlayerType[] = [
-  {
-    name: "Player 1",
-    address: "0x123",
+export const TIME_TO_PLAY = 30;
 
-    draws: [],
-    total: 0,
-    isActive: true,
-    hasSkippedTurn: false,
-    claimed: false,
-    color: "red",
+export const CORE_CHAIN_CONFIG = {
+  chainId: ethers.toQuantity(CORE_CHAIN_ID),
+  chainName: CORE_CHAIN_NETWORK_NAME,
+  nativeCurrency: {
+    name: "Test Core 2",
+    symbol: CORE_CHAIN_CURRENCY_SYMBOL,
+    decimals: 18,
   },
-  {
-    name: "Player 2",
-    address: "0x456",
-
-    draws: [],
-    total: 0,
-    isActive: true,
-    hasSkippedTurn: false,
-    claimed: false,
-    color: "blue",
-  },
-  {
-    name: "Player 3",
-    address: "0x789",
-    draws: [],
-    total: 0,
-    isActive: true,
-    hasSkippedTurn: false,
-    claimed: false,
-    color: "green",
-  },
-  {
-    name: "Player 4",
-    address: "0x101",
-
-    draws: [],
-    total: 0,
-    isActive: true,
-    hasSkippedTurn: false,
-    claimed: false,
-    color: "yellow",
-  },
-];
-
-export const DEFAULT_ROOM: RoomType = {
-  creator: "",
-  name: "",
-  id: 0,
-  players: [],
-  mode: "Rounds",
-  modeValue: 3,
-  maxNumber: 21,
-  modeCurrentValue: 0,
-  isActive: false,
-  status: "NotStarted",
-  entryFee: MIN_FEE,
-  startTime: 0,
-  duration: 0,
-  currentPlayerIndex: 0,
-  lastTurnTimestamp: 0,
-  turnTimeout: 0,
-};
-
-export const DUMMY_ROOM: RoomType = {
-  creator: "0x123",
-  name: "Some Name",
-  id: 1,
-  players: DUMMY_PLAYERS.map((p) => p.address),
-  mode: "Rounds",
-  modeValue: 3,
-  modeCurrentValue: 0,
-  maxNumber: 21,
-  isActive: true,
-  status: "NotStarted",
-  entryFee: MIN_FEE,
-  startTime: 0,
-  duration: 0,
-  currentPlayerIndex: 0,
-  lastTurnTimestamp: 0,
-  turnTimeout: 0,
+  rpcUrls: [CORE_CHAIN_URL],
+  blockExplorerUrls: ["https://testnet.bscscan.com"],
 };

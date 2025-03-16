@@ -1,4 +1,3 @@
-import GameBoard from "@/components/GameBoard/GameBoard";
 import EnterGame from "@/components/StartScreens/EnterGame";
 import { GameProvider } from "@/context/GameContext";
 

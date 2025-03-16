@@ -6,7 +6,7 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { RoomType } from 'src/types';
+import { PlayerType, RoomType } from 'src/types';
 
 @WebSocketGateway({
   cors: {
@@ -17,7 +17,13 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
-  private rooms: Record<string, RoomType> = {}; // Store rooms
+  private rooms: Record<
+    string,
+    {
+      data: RoomType;
+      players: PlayerType[];
+    }
+  > = {}; // Store rooms
 
   handleConnection(client: Socket) {
     console.log(`Client connected: ${client.id}`);
@@ -29,75 +35,68 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('createRoom')
   handleCreateRoom(client: Socket, room: RoomType) {
-    if (!this.rooms[room.id]) {
-      this.rooms[`${room.id}`] = room;
-      client.join(`${room.id}`);
-      console.log(
-        `Room created: ${room.id} by ${client.id} - Players: ${room.players[0]}`,
-      );
-      this.server.emit('roomCreated', this.rooms[room.id]);
-    }
+    this.server.emit('roomCreated', this.rooms[room.id]);
   }
 
   @SubscribeMessage('joinRoom')
-  handleJoinRoom(client: Socket, data: { roomId: string; player: string }) {
-    const { roomId, player } = data;
-    if (this.rooms[roomId]) {
-      this.rooms[roomId].players.push(player);
-      client.join(roomId);
-      this.server.to(roomId).emit('playerJoined', data);
-    }
+  handleJoinRoom(client: Socket, data: { room: RoomType; player: PlayerType }) {
+    this.server.emit('playerJoined', data);
   }
 
   @SubscribeMessage('leaveRoom')
-  handlePlayerMove(client: Socket, data: { roomId: string; player: string }) {
-    this.server.to(data.roomId).emit('playerLeft', data);
+  handlePlayerMove(
+    client: Socket,
+    data: { roomId: string; playerAddress: string },
+  ) {
+    this.server.emit('playerLeft', data);
   }
 
   @SubscribeMessage('startGame')
-  handleStartGame(client: Socket, roomId: string) {
-    this.server.to(roomId).emit('gameStarted', roomId);
+  handleStartGame(client: Socket, data: { roomId: string; startTime: number }) {
+    this.server.emit('gameStarted', data);
+  }
+
+  @SubscribeMessage('advanceTurn')
+  handleAdvanceTurn(
+    client: Socket,
+    data: { roomId: string; playerAddress: string },
+  ) {
+    this.server.emit('turnAdvanced', data);
   }
 
   @SubscribeMessage('playerDraw')
   handlePlayerDraw(
     client: Socket,
-    data: { roomId: string; player: string; draw: [number, number] },
+    data: { roomId: string; playerAddress: string; draws: [number, number] },
   ) {
-    this.server.to(data.roomId).emit('playerDrew', data);
+    this.server.emit('playerDrew', data);
   }
 
   @SubscribeMessage('playerSkip')
-  handlePlayerSkip(client: Socket, data: { roomId: string; player: string }) {
-    this.server.to(data.roomId).emit('playerSkipped', data);
+  handlePlayerSkip(
+    client: Socket,
+    data: { roomId: string; playerAddress: string },
+  ) {
+    this.server.emit('playerSkipped', data);
   }
 
   @SubscribeMessage('playerLost')
   handlePlayerLost(client: Socket, data: { roomId: string; player: string }) {
-    this.server.to(data.roomId).emit('playerOut', data);
+    this.server.emit('playerOut', data);
   }
 
   @SubscribeMessage('playerWin')
   handlePlayerWin(client: Socket, data: { roomId: string; player: string }) {
-    this.server.to(data.roomId).emit('playerWon', data);
+    this.server.emit('playerWon', data);
   }
 
   @SubscribeMessage('playerClaim')
   handlePlayerClaim(client: Socket, data: { roomId: string; player: string }) {
-    this.server.to(data.roomId).emit('playerClaimed', data);
+    this.server.emit('playerClaimed', data);
   }
 
   @SubscribeMessage('closeRoom')
   handleCloseRoom(client: Socket, data: { roomId: string }) {
-    const updattedRooms = Object.keys(this.rooms).reduce(
-      (acc, key) => {
-        if (key !== data.roomId) {
-          acc[key] = this.rooms[key];
-        }
-        return acc;
-      },
-      {} as Record<string, RoomType>,
-    );
-    this.rooms = updattedRooms;
+    this.server.emit('roomClosed', data);
   }
 }

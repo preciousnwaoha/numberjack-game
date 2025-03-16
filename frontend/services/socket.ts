@@ -50,7 +50,7 @@ class SocketService {
 
 export const socketService = new SocketService();
 
-
+/*
 
 
 class SocketSingleton {
@@ -81,3 +81,6 @@ class SocketSingleton {
 }
 
 export default SocketSingleton;
+
+
+*/

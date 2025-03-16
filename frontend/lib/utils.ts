@@ -15,11 +15,24 @@ export const bigIntToString = (bigInt: bigint) => {
   return ethers.formatEther(bigInt);
 };
 
+export const genRandomColor = () => {
+  const letters = "0123456789ABCDEF"
+  let color = "#"
+  for (let i = 0; i < 6; i++) {
+      color += letters[Math.floor(Math.random() * 16)]
+  }
+  return color
+}
+
+
 export const randomPlayerColor = () => {
   return "#" + Math.floor(Math.random() * 16777215).toString(16);
 };
 
-export const getNewPlayerDefault = (address: string, name?: string): PlayerType => {
+export const getNewPlayerDefault = (
+  address: string,
+  name?: string
+): PlayerType => {
   return {
     name: name || "",
     address,
@@ -32,8 +45,29 @@ export const getNewPlayerDefault = (address: string, name?: string): PlayerType 
   };
 };
 
-
-export const getNextPlayerIndex = (players: PlayerType[], lastPlayerIndex: number) => {
+export const getNextPlayerIndex = (
+  players: PlayerType[],
+  lastPlayerIndex: number
+) => {
   const nextIndex = lastPlayerIndex + 1;
   return nextIndex >= players.length ? 0 : nextIndex;
-}
+};
+
+export const playerFromContractToPlayerType = ({
+  player,
+}: {
+  player: {
+    address: string;
+    draws: number[];
+    total: number;
+    isActive: boolean;
+  };
+}): PlayerType => {
+  return {
+    name: "",
+    ...player,
+    hasSkippedTurn: false,
+    claimed: false,
+    color: randomPlayerColor(),
+  };
+};

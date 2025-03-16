@@ -3,44 +3,99 @@
 import type React from "react";
 import { Button } from "@/components/ui/button";
 import { useGame } from "@/context/GameContext";
+import Logo from "../ui/Logo";
+import { Card } from "../ui/card";
 
 const Lobby: React.FC = () => {
-  const { clientPlayerAddress, players, roomData, startGame } = useGame();
+  const { clientPlayerAddress, players, roomData, startGame, endGame } =
+    useGame();
 
   if (!roomData) {
     return null;
   }
 
-  const creatorIsClient = clientPlayerAddress === roomData.creator;
+  const creatorIsClient =
+    clientPlayerAddress.toLowerCase() === roomData.creator.toLowerCase();
 
   return (
     <div className={""}>
-      <Button variant="outline">Out</Button>
-
-      <h2>{roomData.name}</h2>
-      
-
-      <div className={""}>
-        {players.map((player, i) => (
-          <div key={i} className={""}>
-            <div
-              className={""}
-              style={{ backgroundColor: player.color }}
-            ></div>
-            <p>{player.address}</p>
-          </div>
-        ))}
+      <div>
+        <Logo />
+        <Button variant="outline">Out</Button>
       </div>
 
-      {creatorIsClient && (
-        <Button
-          onClick={() => {
-            startGame();
-          }}
-        >
-          Start Game
+      <div className="">
+        <Button variant="outline" onClick={() => endGame()}>
+          End Room
         </Button>
-      )}
+
+        <Card>
+          <h2>Waiting Room</h2>
+          <p>{players.length} Players joined</p>
+
+          <div className={""}>
+            {players.map((player, i) => (
+              <div key={i} className={""}>
+                <div
+                  className={""}
+                  style={{ backgroundColor: player.color }}
+                ></div>
+                <p>{player.address}</p>
+              </div>
+            ))}
+          </div>
+
+          {creatorIsClient && (
+            <Button
+              onClick={() => {
+                startGame();
+              }}
+            >
+              Start Game
+            </Button>
+          )}
+        </Card>
+
+        <Card>
+          <h3>Room Information</h3>
+
+          <div>
+            <p>Room Details</p>
+            <p>
+              {roomData.id} - {roomData.name}
+            </p>
+          </div>
+
+          <div>
+            <p>Game Mode</p>
+            <p>{roomData.mode}</p>
+            <p>{roomData.roundValue}</p>
+          </div>
+
+          <div>
+            <p> No of Rounds</p>
+            <p>{roomData.roundValue}</p>
+          </div>
+
+          <div>
+            <p>Max Number</p>
+            <p>{roomData.maxNumber}</p>
+          </div>
+        </Card>
+
+        <Card>
+          <h3>Players</h3>
+          {players.map((player, i) => (
+            <div key={i} className={""}>
+              <div
+                className={""}
+                style={{ backgroundColor: player.color }}
+              ></div>
+              <p>{player.address}</p>
+            </div>
+          ))}
+        </Card>
+      </div>
     </div>
   );
 };
