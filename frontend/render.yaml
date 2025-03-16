@@ -11,7 +11,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: NEXT_PUBLIC_SERVER_URL
-        value: https://api.example.com
+        value: https://numberjack-game.onrender.com
       - key: NEXT_PUBLIC_CONTRACT_ADDRESS
         value: 0x7422e0BAf785e3058DD37F2048d1B93A6f716DE1
       - key: NEXT_PUBLIC_TOKEN_CONTACT_ADDRESS
