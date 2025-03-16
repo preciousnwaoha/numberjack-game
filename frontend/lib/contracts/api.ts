@@ -390,6 +390,7 @@ export const getPlayersApi = async ({
 }) => {
   try {
     const roomRes = await getRoomByIdApi({ roomId, contract });
+    console.log("getPlayersApi: Room data:", roomRes);
     if (roomRes.error || !roomRes.data) {
       return {
         error: roomRes.error,
