@@ -163,7 +163,7 @@ const useContractEvents = ({
     // };
 
     const handleGameStarted = (...args: unknown[]) => {
-      // TODO: Emit Time started
+
       const roomId = Number(args[0]).toString();
       const startTime = Number(args[1]);
       if (roomData?.id === roomId) {
@@ -259,7 +259,6 @@ const useContractEvents = ({
     };
 
     const handlePlayerEliminated = (...args: unknown[]) => {
-      // TODO: Why cant we get player {draws, totoal, address, isActive}
       const roomId = Number(args[0]).toString() as string;
       const playerAddress = (args[1] as string).toLowerCase();
       if (roomData?.id === roomId) {
